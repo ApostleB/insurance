@@ -71,6 +71,14 @@ production으로 기동되면 `DISCORD_WEBHOOK_GENERAL` 채널로 **서버 시�
 
 리버스 프록시(nginx 등) 뒤에 두는 것을 전제로 `trust proxy = 1`이 설정되어 있습니다. HTTPS 종단은 프록시에서 처리하세요.
 
+nginx 설정 예시는 [deploy/nginx/insurance.conf](deploy/nginx/insurance.conf)에 있습니다 — 앱은 `127.0.0.1:3070`에서만 듣고, nginx가 TLS를 종단해 그쪽으로 프록시합니다. 파일 상단 주석에 설치 명령이 있습니다.
+
+순수 `bytebard.cloud:443`은 이미 다른 서비스(127.0.0.1:3000)가 쓰고 있고 서브도메인도 만들 수 없는 상황이라, **같은 도메인의 다른 포트(`https://bytebard.cloud:8443/`)** 로 분리했습니다. `server_name`이 같아도 `listen` 포트가 다르면 nginx가 별개로 인식하므로 기존 443 설정과 충돌하지 않습니다.
+
+**TLS가 실제로 붙었다면 확인할 것**
+- `.env`의 `SITE_URL`을 `https://bytebard.cloud:8443`로 변경 (아직 `https://example.com`이면 production 기동 시 경고가 뜹니다)
+- helmet의 HSTS는 현재 `hsts: false`로 꺼져 있습니다([app.ts](src/app.ts)) — TLS 없이 헤더만 먼저 나가면 브라우저가 도메인을 최대 1년간 https 전용으로 캐싱해버려 복구가 어려운 사고가 난 적이 있습니다. nginx가 TLS를 안정적으로 서빙하는 걸 확인한 뒤 다시 켜는 걸 권장하며, 필요하면 말씀해주세요.
+
 ## 환경변수
 
 `.env.example` 참고. 서버 기동 시 `src/config/env.ts`에서 zod로 검증하며,

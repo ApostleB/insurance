@@ -1,0 +1,40 @@
+<!-- 개인정보 수집 및 이용 동의 (필수) -->
+<div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+  <div class="mb-2 flex items-center justify-between">
+    <h3 class="text-sm font-bold text-slate-800">개인정보 수집 및 이용 동의</h3>
+    <a href="/privacy" target="_blank" rel="noopener"
+       class="text-xs font-semibold text-brand-600 underline underline-offset-2">전문 보기</a>
+  </div>
+
+  <textarea readonly rows="6" aria-label="개인정보 수집 및 이용 동의 안내문"
+            class="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-[13px] leading-relaxed text-slate-600 focus:outline-none"
+  >[개인정보 수집 및 이용 동의]
+
+1. 수집 항목
+   - 이름, 연락처(휴대전화번호), 상담·청구 상세 내용
+
+2. 수집 및 이용 목적
+   - 보험 상담 및 보험금 청구 접수, 신청 내용 확인 및 결과 회신
+
+3. 보유 및 이용 기간
+   - 본 홈페이지는 신청 내용을 별도의 데이터베이스에 저장하지 않습니다.
+   - 입력하신 내용은 담당 설계사에게 즉시 전달되며, 상담(청구 처리) 종료 후 지체 없이 파기합니다.
+
+4. 동의를 거부할 권리 및 불이익
+   - 개인정보 수집·이용에 동의하지 않으실 수 있습니다.
+   - 다만 동의하지 않으실 경우 온라인 신청이 제한되며, 전화 또는 카카오톡으로 상담을 요청하실 수 있습니다.</textarea>
+
+  <label class="mt-3 flex cursor-pointer items-start gap-3">
+    <input type="checkbox" name="privacyConsent" value="on" required
+           <%= values.privacyConsent ? 'checked' : '' %>
+           class="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-2 focus:ring-brand-500">
+    <span class="text-sm leading-relaxed text-slate-700">
+      위 내용을 확인했으며 <b class="font-bold">개인정보 수집 및 이용에 동의</b>합니다.
+      <span class="font-semibold text-red-500">(필수)</span>
+    </span>
+  </label>
+
+  <% if (errors.privacyConsent) { %>
+    <p class="mt-2 text-sm font-medium text-red-600"><%= errors.privacyConsent %></p>
+  <% } %>
+</div>

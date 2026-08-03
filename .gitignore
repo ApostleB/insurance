@@ -1,0 +1,23 @@
+# 환경변수 (실제 비밀값 포함 — 절대 커밋 금지)
+.env
+.env.*
+!.env.example
+
+# 의존성 / 빌드 산출물
+node_modules/
+dist/
+
+# 업로드 파일 (고객 개인정보 포함)
+uploads/
+!uploads/.gitkeep
+
+# 로그 (PM2 출력 포함)
+logs/
+*.log
+npm-debug.log*
+.pm2/
+
+# 에디터 / OS
+.idea/
+.vscode/
+.DS_Store

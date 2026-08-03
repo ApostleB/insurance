@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <%- include('partials/head') %>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 antialiased">
+  <%- include('partials/header') %>
+
+  <main class="mx-auto max-w-3xl px-4 pb-28 sm:pb-8">
+
+    <section class="mt-5">
+      <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">설계신청</h1>
+      <p class="mt-2 text-[15px] leading-relaxed text-slate-600">
+        아래 세 가지만 남겨주시면 됩니다.<br>
+        확인 후 <b class="font-bold text-slate-800">설계사가 직접 연락드려</b> 필요한 보장을 함께 정리해드립니다.
+      </p>
+    </section>
+
+    <% if (formError) { %>
+    <div role="alert" class="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+      <p class="text-sm font-bold text-red-700">신청 접수에 실패했습니다</p>
+      <p class="mt-1 text-sm leading-relaxed text-red-600"><%= formError %></p>
+      <!-- 전송 실패는 예외 상황이므로 이때만 연락처 버튼을 노출한다 -->
+      <div class="mt-3">
+        <%- include('partials/contact-buttons') %>
+      </div>
+    </div>
+    <% } %>
+
+    <form action="/consultation" method="post" data-guard="true"
+          class="mt-5 space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+
+      <!-- 허니팟: 사람에게는 보이지 않는 필드 (봇 차단용) -->
+      <div class="absolute left-[-9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+        <label for="website">홈페이지</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <!-- 이름 -->
+      <div>
+        <label for="name" class="block text-sm font-bold text-slate-800">
+          이름 <span class="text-red-500">*</span>
+        </label>
+        <input type="text" id="name" name="name" required maxlength="20"
+               value="<%= values.name %>" placeholder="홍길동" autocomplete="name"
+               class="mt-2 block h-12 w-full rounded-xl border bg-white px-4 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 <%= errors.name ? 'border-red-400' : 'border-slate-300' %>">
+        <% if (errors.name) { %><p class="mt-1.5 text-sm font-medium text-red-600"><%= errors.name %></p><% } %>
+      </div>
+
+      <!-- 연락처 -->
+      <div>
+        <label for="phone" class="block text-sm font-bold text-slate-800">
+          연락처 <span class="text-red-500">*</span>
+        </label>
+        <input type="tel" id="phone" name="phone" required inputmode="numeric" maxlength="13"
+               data-phone-format value="<%= values.phone %>" placeholder="010-1234-5678" autocomplete="tel"
+               class="mt-2 block h-12 w-full rounded-xl border bg-white px-4 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 <%= errors.phone ? 'border-red-400' : 'border-slate-300' %>">
+        <% if (errors.phone) { %>
+          <p class="mt-1.5 text-sm font-medium text-red-600"><%= errors.phone %></p>
+        <% } else { %>
+          <p class="mt-1.5 text-xs text-slate-400">연락 가능한 휴대폰 번호를 적어주세요.</p>
+        <% } %>
+      </div>
+
+      <!-- 상세 내용 -->
+      <div>
+        <label for="details" class="block text-sm font-bold text-slate-800">
+          상세 내용 <span class="text-red-500">*</span>
+        </label>
+        <textarea id="details" name="details" required rows="6" maxlength="2000"
+                  placeholder="예) 30대 초반이고 실손보험만 있습니다. 암보험을 추가하고 싶은데 보험료가 부담되지 않는 선에서 상담받고 싶어요."
+                  class="mt-2 block w-full rounded-xl border bg-white p-4 text-base leading-relaxed text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 <%= errors.details ? 'border-red-400' : 'border-slate-300' %>"><%= values.details %></textarea>
+        <% if (errors.details) { %>
+          <p class="mt-1.5 text-sm font-medium text-red-600"><%= errors.details %></p>
+        <% } else { %>
+          <p class="mt-1.5 text-xs text-slate-400">나이·가입 중인 보험·궁금한 점을 편하게 적어주시면 상담이 훨씬 빨라집니다.</p>
+        <% } %>
+      </div>
+
+      <%- include('partials/privacy-consent') %>
+
+      <button type="submit"
+              class="flex h-14 w-full items-center justify-center rounded-2xl bg-brand-600 text-base font-bold text-white shadow-sm transition active:bg-brand-700 disabled:opacity-70">
+        <span data-submit-label>설계 신청하기</span>
+      </button>
+
+      <p class="text-center text-xs text-slate-400">
+        신청 내용은 서버에 저장되지 않고 담당 설계사에게 바로 전달됩니다.
+      </p>
+    </form>
+
+  </main>
+
+  <%- include('partials/footer') %>
+  <%- include('partials/floating-contact') %>
+  <script src="/js/app.js" defer></script>
+</body>
+</html>

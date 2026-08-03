@@ -1,0 +1,35 @@
+<footer class="mt-12 border-t border-slate-200 bg-slate-50">
+  <div class="mx-auto max-w-3xl px-4 py-8">
+    <p class="text-base font-bold text-slate-900"><%= siteName %></p>
+    <p class="mt-1 text-sm text-slate-600">독립 보험대리점 소속 설계사 · <%= agentName %></p>
+
+    <dl class="mt-4 space-y-1.5 text-sm text-slate-600">
+      <div class="flex gap-2">
+        <dt class="w-14 shrink-0 text-slate-400">전화</dt>
+        <dd><a href="<%= contactPhoneHref %>" class="font-medium text-slate-700 underline underline-offset-2"><%= contactPhone %></a></dd>
+      </div>
+      <div class="flex gap-2">
+        <dt class="w-14 shrink-0 text-slate-400">카카오톡</dt>
+        <dd><a href="<%= kakaoUrl %>" target="_blank" rel="noopener noreferrer" class="font-medium text-slate-700 underline underline-offset-2">오픈채팅 상담</a></dd>
+      </div>
+      <% if (agentEmail) { %>
+      <div class="flex gap-2">
+        <dt class="w-14 shrink-0 text-slate-400">이메일</dt>
+        <dd><a href="mailto:<%= agentEmail %>" class="font-medium text-slate-700 underline underline-offset-2"><%= agentEmail %></a></dd>
+      </div>
+      <% } %>
+    </dl>
+
+    <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+      <a href="/privacy" class="font-semibold text-brand-700 underline underline-offset-2">개인정보처리방침</a>
+      <a href="/consultation" class="text-slate-500 hover:text-slate-700">설계신청</a>
+      <a href="/claim" class="text-slate-500 hover:text-slate-700">청구신청</a>
+    </div>
+
+    <p class="mt-6 text-xs leading-relaxed text-slate-400">
+      본 사이트는 보험 상담 신청을 접수하기 위한 안내 페이지이며, 보험 계약의 청약·체결이 이루어지는 곳이 아닙니다.
+      보장 내용 및 보험료는 상담 시 안내드리며, 계약 전 상품설명서와 약관을 반드시 확인하시기 바랍니다.
+    </p>
+    <p class="mt-3 text-xs text-slate-400">&copy; <%= new Date().getFullYear() %> <%= siteName %>. All rights reserved.</p>
+  </div>
+</footer>

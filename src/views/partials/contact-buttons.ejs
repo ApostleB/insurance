@@ -1,0 +1,13 @@
+<!-- 폼 주변에 배치하는 즉시 연결 버튼 (.env의 연락처 사용) -->
+<div class="grid grid-cols-2 gap-2.5">
+  <a href="<%= contactPhoneHref %>"
+     class="flex min-h-[56px] flex-col items-center justify-center rounded-2xl border border-brand-200 bg-brand-50 px-3 py-2.5 transition active:bg-brand-100">
+    <span class="text-[13px] font-bold text-brand-700">📞 바로 전화하기</span>
+    <span class="mt-0.5 text-xs text-brand-600/80"><%= contactPhone %></span>
+  </a>
+  <a href="<%= kakaoUrl %>" target="_blank" rel="noopener noreferrer"
+     class="flex min-h-[56px] flex-col items-center justify-center rounded-2xl border border-yellow-300 bg-yellow-50 px-3 py-2.5 transition active:bg-yellow-100">
+    <span class="text-[13px] font-bold text-[#3C1E1E]">💬 카카오톡 상담</span>
+    <span class="mt-0.5 text-xs text-[#3C1E1E]/60">오픈채팅으로 연결</span>
+  </a>
+</div>

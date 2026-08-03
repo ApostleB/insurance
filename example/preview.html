@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보험 웹사이트 인터랙티브 샘플 프리뷰어</title>
+  
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- 상단 컨트롤 툴바 -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-4 py-3 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+      
+      <!-- 프로젝트 타이틀 -->
+      <div class="flex items-center gap-3">
+        <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 font-bold text-white shadow-md">
+          🛡️
+        </div>
+        <div>
+          <h1 class="text-sm font-bold text-white flex items-center gap-2">
+            보험설계사 홈페이지 샘플 뷰어
+            <span class="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">Live HTML</span>
+          </h1>
+          <p class="text-xs text-slate-400">모바일 퍼스트 반응형 디자인 샘플 페이지</p>
+        </div>
+      </div>
+
+      <!-- 페이지 선택 탭 -->
+      <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
+        <button onclick="switchPage('index.html', this)" class="page-tab px-3 py-1.5 rounded-lg font-bold bg-brand-600 text-white transition">
+          1. 메인 홈 (소개)
+        </button>
+        <button onclick="switchPage('consultation.html', this)" class="page-tab px-3 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white transition">
+          2. 설계신청 (리모델링)
+        </button>
+        <button onclick="switchPage('claim.html', this)" class="page-tab px-3 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white transition">
+          3. 청구신청 (보상)
+        </button>
+        <button onclick="switchPage('complete.html?type=consultation&name=홍길동', this)" class="page-tab px-3 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white transition">
+          4. 접수완료 화면
+        </button>
+        <button onclick="switchPage('privacy.html', this)" class="page-tab px-3 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white transition">
+          5. 개인정보처리방침
+        </button>
+      </div>
+
+      <!-- 디바이스 프레임 크기 변경 -->
+      <div class="flex items-center gap-2">
+        <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
+          <button onclick="setDevice('mobile', this)" class="device-btn px-2.5 py-1.5 rounded-lg font-bold bg-slate-800 text-white transition flex items-center gap-1">
+            📱 모바일 (390px)
+          </button>
+          <button onclick="setDevice('tablet', this)" class="device-btn px-2.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition flex items-center gap-1">
+            💻 태블릿 (768px)
+          </button>
+          <button onclick="setDevice('desktop', this)" class="device-btn px-2.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition flex items-center gap-1">
+            🖥️ 데스크톱 (100%)
+          </button>
+        </div>
+
+        <a id="directLink" href="index.html" target="_blank" class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700 flex items-center gap-1">
+          새 창 열기 ↗
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- 메인 프레임 영역 -->
+  <main class="flex-1 flex items-center justify-center p-4 md:p-8 overflow-auto">
+    <div id="frameContainer" class="w-[390px] h-[844px] max-h-[85vh] transition-all duration-300 relative rounded-[40px] p-3.5 bg-slate-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border-4 border-slate-700 flex flex-col">
+      
+      <!-- 스마트폰 노치/스피커 바 (모바일 모드일 때만 표시) -->
+      <div id="notchBar" class="mx-auto h-5 w-32 rounded-full bg-slate-950 mb-2 flex items-center justify-center">
+        <div class="h-2 w-2 rounded-full bg-slate-800 mr-2"></div>
+        <div class="h-1.5 w-12 rounded-full bg-slate-800"></div>
+      </div>
+
+      <!-- iframe -->
+      <iframe id="previewFrame" src="index.html" class="w-full flex-1 rounded-[28px] bg-white border-0 overflow-auto"></iframe>
+    </div>
+  </main>
+
+  <script>
+    let currentPage = 'index.html';
+
+    function switchPage(pageUrl, btn) {
+      currentPage = pageUrl;
+      document.getElementById('previewFrame').src = pageUrl;
+      document.getElementById('directLink').href = pageUrl;
+
+      document.querySelectorAll('.page-tab').forEach(el => {
+        el.className = 'page-tab px-3 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white transition';
+      });
+      btn.className = 'page-tab px-3 py-1.5 rounded-lg font-bold bg-brand-600 text-white transition';
+    }
+
+    function setDevice(type, btn) {
+      const container = document.getElementById('frameContainer');
+      const notch = document.getElementById('notchBar');
+      const iframe = document.getElementById('previewFrame');
+
+      document.querySelectorAll('.device-btn').forEach(el => {
+        el.className = 'device-btn px-2.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition flex items-center gap-1';
+      });
+      btn.className = 'device-btn px-2.5 py-1.5 rounded-lg font-bold bg-slate-800 text-white transition flex items-center gap-1';
+
+      if (type === 'mobile') {
+        container.style.width = '390px';
+        container.style.height = '844px';
+        container.className = 'w-[390px] h-[844px] max-h-[85vh] transition-all duration-300 relative rounded-[40px] p-3.5 bg-slate-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border-4 border-slate-700 flex flex-col';
+        notch.style.display = 'flex';
+        iframe.className = 'w-full flex-1 rounded-[28px] bg-white border-0 overflow-auto';
+      } else if (type === 'tablet') {
+        container.style.width = '768px';
+        container.style.height = '880px';
+        container.className = 'w-[768px] h-[880px] max-h-[85vh] transition-all duration-300 relative rounded-[28px] p-3 bg-slate-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border-4 border-slate-700 flex flex-col';
+        notch.style.display = 'none';
+        iframe.className = 'w-full flex-1 rounded-2xl bg-white border-0 overflow-auto';
+      } else if (type === 'desktop') {
+        container.style.width = '100%';
+        container.style.height = '85vh';
+        container.className = 'w-full h-[85vh] transition-all duration-300 relative rounded-2xl p-0 bg-transparent shadow-none border-0 flex flex-col';
+        notch.style.display = 'none';
+        iframe.className = 'w-full flex-1 rounded-2xl bg-white border border-slate-700 overflow-auto';
+      }
+    }
+  </script>
+</body>
+</html>

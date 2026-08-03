@@ -3,13 +3,13 @@
 <head>
   <%- include('partials/head') %>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900 antialiased">
+<body class="bg-slate-50 font-sans text-slate-900 antialiased selection:bg-amber-500 selection:text-white">
   <%- include('partials/header') %>
 
   <main class="mx-auto max-w-3xl px-4 pb-28 sm:pb-8">
 
     <section class="mt-5">
-      <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">청구신청</h1>
+      <h1 class="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">청구신청</h1>
       <p class="mt-2 text-[15px] leading-relaxed text-slate-600">
         보험금 청구, 혼자 알아보지 않으셔도 됩니다.<br>
         접수만 해주시면 <b class="font-bold text-slate-800">설계사가 직접 연락드려</b> 진행을 도와드립니다.
@@ -17,10 +17,10 @@
     </section>
 
     <!-- 서류 안내 (파일 업로드 없음) -->
-    <div class="mt-4 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-      <span class="text-lg leading-none">📄</span>
+    <div class="mt-4 flex gap-3.5 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 sm:p-5">
+      <span class="text-2xl leading-none shrink-0">📄</span>
       <div>
-        <p class="text-sm font-bold text-amber-900">서류는 지금 준비하지 않으셔도 됩니다</p>
+        <p class="text-sm font-bold text-amber-950">서류는 지금 준비하지 않으셔도 됩니다</p>
         <p class="mt-1 text-sm leading-relaxed text-amber-800">
           영수증·진단서 등 필요한 서류는 <b class="font-bold">접수 후 설계사가 직접 연락드려</b> 하나씩 안내해드립니다.
           이 페이지에서는 파일을 첨부하지 않습니다.
@@ -40,7 +40,7 @@
     <% } %>
 
     <form action="/claim" method="post" data-guard="true"
-          class="mt-5 space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          class="mt-5 space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
 
       <!-- 허니팟: 사람에게는 보이지 않는 필드 (봇 차단용) -->
       <div class="absolute left-[-9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
@@ -55,7 +55,7 @@
         </label>
         <input type="text" id="name" name="name" required maxlength="20"
                value="<%= values.name %>" placeholder="홍길동" autocomplete="name"
-               class="mt-2 block h-12 w-full rounded-xl border bg-white px-4 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 <%= errors.name ? 'border-red-400' : 'border-slate-300' %>">
+               class="mt-2 block h-12 w-full rounded-xl border bg-white px-4 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 <%= errors.name ? 'border-red-400' : 'border-slate-300' %>">
         <% if (errors.name) { %><p class="mt-1.5 text-sm font-medium text-red-600"><%= errors.name %></p><% } %>
       </div>
 
@@ -66,7 +66,7 @@
         </label>
         <input type="tel" id="phone" name="phone" required inputmode="numeric" maxlength="13"
                data-phone-format value="<%= values.phone %>" placeholder="010-1234-5678" autocomplete="tel"
-               class="mt-2 block h-12 w-full rounded-xl border bg-white px-4 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 <%= errors.phone ? 'border-red-400' : 'border-slate-300' %>">
+               class="mt-2 block h-12 w-full rounded-xl border bg-white px-4 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 <%= errors.phone ? 'border-red-400' : 'border-slate-300' %>">
         <% if (errors.phone) { %>
           <p class="mt-1.5 text-sm font-medium text-red-600"><%= errors.phone %></p>
         <% } else { %>
@@ -81,7 +81,7 @@
         </label>
         <textarea id="details" name="details" required rows="7" maxlength="2000"
                   placeholder="예) 지난주 화요일에 계단에서 넘어져 발목이 골절됐습니다. OO정형외과에서 깁스했고 4주 진단을 받았습니다. 삼성화재 실손보험에 가입되어 있습니다."
-                  class="mt-2 block w-full rounded-xl border bg-white p-4 text-base leading-relaxed text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 <%= errors.details ? 'border-red-400' : 'border-slate-300' %>"><%= values.details %></textarea>
+                  class="mt-2 block w-full rounded-xl border bg-white p-4 text-base leading-relaxed text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 <%= errors.details ? 'border-red-400' : 'border-slate-300' %>"><%= values.details %></textarea>
         <% if (errors.details) { %>
           <p class="mt-1.5 text-sm font-medium text-red-600"><%= errors.details %></p>
         <% } else { %>
@@ -92,7 +92,7 @@
       <%- include('partials/privacy-consent') %>
 
       <button type="submit"
-              class="flex h-14 w-full items-center justify-center rounded-2xl bg-amber-600 text-base font-bold text-white shadow-sm transition active:bg-amber-700 disabled:opacity-70">
+              class="flex h-14 w-full items-center justify-center rounded-2xl bg-amber-600 text-base font-extrabold text-white shadow-md shadow-amber-500/20 transition hover:bg-amber-700 active:scale-[0.99] disabled:opacity-70">
         <span data-submit-label>청구 신청하기</span>
       </button>
 

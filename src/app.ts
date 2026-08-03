@@ -60,10 +60,12 @@ export function createApp(): express.Express {
           // 스크립트 소스 허용과 'unsafe-eval'이 필요하다.
           // 빌드 타임 Tailwind(CLI/PostCSS)로 전환하면 아래 두 항목을 제거할 수 있다.
           scriptSrc: ["'self'", 'https://cdn.tailwindcss.com', "'unsafe-eval'"],
-          // Tailwind CDN이 <style> 태그를 런타임에 주입하므로 인라인 스타일 허용이 필요하다.
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          // Tailwind CDN이 <style> 태그를 런타임에 주입하므로 인라인 스타일 허용이 필요하고,
+          // Pretendard 웹폰트를 jsDelivr CDN의 <link rel="stylesheet">로 불러오므로 그 출처도 허용한다.
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
           imgSrc: ["'self'", 'data:'],
-          fontSrc: ["'self'", 'data:'],
+          // Pretendard 폰트 파일(.woff2 등)도 같은 jsDelivr CDN에서 서빙된다.
+          fontSrc: ["'self'", 'data:', 'https://cdn.jsdelivr.net'],
           connectSrc: ["'self'"],
           formAction: ["'self'"],
           frameAncestors: ["'none'"],

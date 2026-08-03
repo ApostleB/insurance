@@ -64,20 +64,3 @@ export async function notifyServerError({ method, path, error }: ServerErrorCont
     ],
   });
 }
-
-/** 배포/재시작 확인용 — 개발 모드에서는 파일 저장마다 울리므로 보내지 않는다. */
-export async function notifyServerStarted(): Promise<void> {
-  if (!env.isProduction) return;
-
-  await sendDiscordNotificationSafely({
-    target: 'general',
-    embeds: [
-      {
-        title: '✅ 홈페이지 서버가 시작되었습니다',
-        color: 0x16a34a, // green-600
-        fields: [field('주소', env.SITE_ORIGIN, true), field('환경', env.NODE_ENV, true)],
-        timestamp: new Date().toISOString(),
-      },
-    ],
-  });
-}

@@ -35,6 +35,7 @@ npm run dev            # http://localhost:3000
 | `npm run build` | TypeScript 컴파일 + EJS 뷰 복사 (`dist/`) |
 | `npm start` | 빌드 결과 실행 |
 | `npm run typecheck` | 타입 검사만 수행 |
+| `npm test` | 접수 전 과정 e2e 검증 (로컬 스텁 웹훅 사용 — 실제 Discord로 전송되지 않음) |
 | `npm run deploy` | 빌드 후 PM2로 기동/무중단 리로드 |
 | `npm run pm2:logs` | PM2 로그 확인 |
 
@@ -134,12 +135,19 @@ public/                       # 정적 리소스 (favicon, js)
 
 | 웹훅 | 언제 울리는가 | 담기는 내용 |
 | --- | --- | --- |
-| `CONSULTATION` | 설계신청 접수 성공 | 이름·연락처·상담 내용 (마스킹 없음) |
-| `CLAIM` | 청구신청 접수 성공 | 이름·연락처·사고 내용 (마스킹 없음) |
+| `CONSULTATION` | 설계신청 접수 성공 | 이름·연락처(field) + 상담 내용(description) — 마스킹 없음 |
+| `CLAIM` | 청구신청 접수 성공 | 이름·연락처(field) + 사고 내용(description) — 마스킹 없음 |
 | `GENERAL` | 500 에러 발생 / 서버 기동 **(production만)** | 요청 경로·에러 메시지·스택 상위 6줄 — **고객 정보는 넣지 않음** |
 
 운영 알림은 같은 에러가 반복될 때 채널이 도배되지 않도록 60초 쿨다운이 걸려 있으며,
 생략된 건수는 다음 알림에 함께 표기됩니다.
+
+**상세내용을 field가 아닌 description에 담는 이유**: 입력 상한은 2000자인데 Discord Embed의 field value 한도는 1024자입니다.
+field에 넣으면 긴 상담 내용의 뒷부분이 잘리고, DB가 없어 복구할 방법이 없습니다.
+description은 4096자까지 허용되므로 유실 없이 전달됩니다. (`npm test`의 [2]번 항목이 이걸 검증합니다)
+
+**전송 실패 처리**: 응답 대기는 8초까지이며, 5xx/429처럼 서버가 명시적으로 거부한 경우에만 1회 재시도합니다.
+타임아웃·네트워크 오류는 이미 전달됐을 수 있어 재시도하지 않고, 사용자에게 실패를 알려 전화·카톡으로 유도합니다.
 
 ## 보안·운영 메모
 
@@ -152,9 +160,11 @@ public/                       # 정적 리소스 (favicon, js)
 
 ## 배포 전 체크리스트
 
-- [ ] `.env`의 `SITE_URL`을 실제 도메인으로 변경 (canonical·OG·sitemap에 사용)
-- [ ] `AGENT_NAME`, `AGENT_EMAIL` 설정
-- [ ] `public/images/og-image.png` 추가 (1200×630) — 카카오톡 공유 미리보기
+- [ ] **`.env`의 `SITE_URL`을 실제 도메인으로 변경** — 현재 `https://example.com`. production 기동 시 경고가 출력됩니다
+- [x] `AGENT_NAME`, `AGENT_EMAIL` 설정
+- [ ] `public/images/og-image.png` 추가 — 카카오톡 공유 미리보기용. **1200 × 630 px, 1MB 이하.**
+      파일이 없으면 `og:image` 태그 자체를 생략하므로(깨진 썸네일 대신 제목·설명만 표시) 없어도 동작은 정상이며, 서버 기동 시 안내 로그가 출력됩니다.
+      **존재 여부는 기동 시 1회만 검사하므로, 나중에 파일을 넣었다면 서버를 재시작해야 태그가 반영됩니다.**
 - [ ] `src/controllers/page.controller.ts`의 `PARTNER_INSURERS` 실제 취급사로 수정
 - [ ] `src/views/privacy.ejs`의 시행일자 확인
 - [ ] `npm run deploy` → `npx pm2 save` → `npx pm2 startup`

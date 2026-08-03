@@ -147,6 +147,8 @@ AGENT_EMAIL=agent@example.com   # 개인정보 보호책임자 연락처
 
 1. `src/` 폴더 내에 `views`(EJS), `routes`, `controllers`, `services`를 분리한 MVC 디렉토리 구조를 제시하세요. (`config`, `middlewares`, `schemas` 폴더 추가)
 2. 디스코드 알림 모듈화 (재사용성 확보). 알림 종류(general/consultation/claim)별 웹훅을 하나의 서비스 모듈에서 처리.
+   - **상세내용은 Embed field가 아니라 description에 담을 것.** 입력 상한은 2000자인데 field value 한도는 1024자라, field에 넣으면 긴 내용의 뒷부분이 잘리고 DB가 없어 복구할 수 없다. description은 4096자까지 허용된다.
+   - 응답 대기 8초 타임아웃. 5xx/429처럼 서버가 명시적으로 거부한 경우에만 1회 재시도하고, 타임아웃·네트워크 오류는 중복 전송 위험 때문에 재시도하지 않는다.
 3. 요청 본문 타입은 zod 스키마에서 `z.infer`로 추론하여 별도 Interface 중복 정의 없이 사용 (privacyConsent 포함).
 4. 모든 EJS 템플릿에 Tailwind CSS 클래스를 활용하여 PC에서도 무리가 없으나 모바일에서 최상의 경험을 제공하도록 코드를 작성해 주세요.
 5. `GET /health` 헬스체크 엔드포인트와 `morgan` 요청 로깅을 추가해주세요.

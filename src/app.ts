@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
@@ -5,6 +6,24 @@ import morgan from 'morgan';
 import { env } from './config/env';
 import { globalErrorHandler, notFoundHandler } from './middlewares/errorHandler';
 import { router } from './routes';
+
+/** 정적 파일 루트 (개발: src/../public, 빌드: dist/../public 모두 프로젝트 루트를 가리킨다) */
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const OG_IMAGE_PATH = '/images/og-image.png';
+
+/**
+ * og:image는 파일이 실제로 있을 때만 내보낸다.
+ * 없는 이미지를 가리키면 카카오톡·SNS 공유 시 깨진 미리보기가 뜨는데,
+ * 아예 태그가 없으면 플랫폼이 제목·설명만으로 깔끔하게 렌더링한다.
+ */
+const hasOgImage = fs.existsSync(path.join(PUBLIC_DIR, 'images', 'og-image.png'));
+
+if (!hasOgImage) {
+  console.warn(
+    `⚠️  public${OG_IMAGE_PATH} 가 없어 og:image 태그를 생략합니다.\n` +
+      '   1200×630 이미지를 넣으면 카카오톡 공유 미리보기에 썸네일이 표시됩니다.',
+  );
+}
 
 export function createApp(): express.Express {
   const app = express();
@@ -50,7 +69,7 @@ export function createApp(): express.Express {
   app.use(express.urlencoded({ extended: false, limit: '64kb' }));
 
   app.use(
-    express.static(path.join(__dirname, '..', 'public'), {
+    express.static(PUBLIC_DIR, {
       maxAge: env.isProduction ? '7d' : 0,
     }),
   );
@@ -70,7 +89,7 @@ export function createApp(): express.Express {
     res.locals.pageTitle = env.SITE_NAME;
     res.locals.pageDescription = `${env.AGENT_NAME} 설계사가 여러 보험사 상품을 비교해 꼭 필요한 보장만 설계해드립니다.`;
     res.locals.canonicalUrl = `${env.SITE_ORIGIN}${req.path}`;
-    res.locals.ogImage = `${env.SITE_ORIGIN}/images/og-image.png`;
+    res.locals.ogImage = hasOgImage ? `${env.SITE_ORIGIN}${OG_IMAGE_PATH}` : null;
     next();
   });
 

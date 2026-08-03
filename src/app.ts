@@ -36,6 +36,21 @@ export function createApp(): express.Express {
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, 'views'));
 
+  // 모든 뷰가 의존하는 공통 locals. 반드시 다른 모든 미들웨어보다 먼저 등록한다.
+  // express.urlencoded의 body 크기 제한(413) 등 이후 미들웨어가 에러를 던지면
+  // Express는 이 아래에 등록된 일반 미들웨어를 전부 건너뛰고 에러 핸들러로 바로 간다.
+  // 그 상태로 error.ejs(→head.ejs)가 canonicalUrl/ogImage를 참조하면 두 번째 예외가 나서
+  // 커스텀 에러 페이지 자체가 깨지고 Express 기본 에러 페이지(스택 노출)로 새 버린다.
+  // req.path는 라우팅 전에도 이미 존재하므로 맨 앞에 두어도 안전하다.
+  app.use((req, res, next) => {
+    res.locals.currentPath = req.path;
+    res.locals.pageTitle = env.SITE_NAME;
+    res.locals.pageDescription = `${env.AGENT_NAME} 설계사가 여러 보험사 상품을 비교해 꼭 필요한 보장만 설계해드립니다.`;
+    res.locals.canonicalUrl = `${env.SITE_ORIGIN}${req.path}`;
+    res.locals.ogImage = hasOgImage ? `${env.SITE_ORIGIN}${OG_IMAGE_PATH}` : null;
+    next();
+  });
+
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -60,6 +75,13 @@ export function createApp(): express.Express {
       },
       // 카카오톡/SNS 공유 미리보기 크롤러가 og:image를 읽을 수 있도록 완화
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      // HTTPS는 아직 이 앱 앞단에 없다(README: "HTTPS 종단은 프록시에서 처리").
+      // helmet 기본값은 HSTS를 항상 켜는데, HTTP로만 서비스 중인 상태에서 이 헤더를 보내면
+      // 브라우저가 해당 도메인(+ includeSubDomains)을 최대 1년간 강제로 https:// 로만
+      // 접속하도록 캐싱해버려, TLS가 없는 포트로는 ERR_SSL_PROTOCOL_ERROR가 뜨고
+      // 서버를 고쳐도 이미 캐싱된 브라우저 정책 때문에 복구되지 않는다.
+      // 실제로 프록시가 TLS를 종단하게 되면 그쪽에서 HSTS를 설정할 것.
+      hsts: false,
     }),
   );
 
@@ -82,16 +104,6 @@ export function createApp(): express.Express {
   app.locals.contactPhone = env.CONTACT_PHONE;
   app.locals.contactPhoneHref = env.CONTACT_PHONE_HREF;
   app.locals.kakaoUrl = env.KAKAO_OPEN_PROFILE_URL;
-
-  // 페이지별로 덮어쓸 수 있는 기본값
-  app.use((req, res, next) => {
-    res.locals.currentPath = req.path;
-    res.locals.pageTitle = env.SITE_NAME;
-    res.locals.pageDescription = `${env.AGENT_NAME} 설계사가 여러 보험사 상품을 비교해 꼭 필요한 보장만 설계해드립니다.`;
-    res.locals.canonicalUrl = `${env.SITE_ORIGIN}${req.path}`;
-    res.locals.ogImage = hasOgImage ? `${env.SITE_ORIGIN}${OG_IMAGE_PATH}` : null;
-    next();
-  });
 
   app.use(router);
 

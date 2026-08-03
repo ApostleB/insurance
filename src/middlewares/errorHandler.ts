@@ -14,6 +14,22 @@ export const notFoundHandler: RequestHandler = (_req, res) => {
   });
 };
 
+/** body-parser 등이 던지는 에러의 상태 코드를 안전하게 읽는다. */
+const readStatus = (error: unknown): number | undefined => {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const candidate = (error as { status?: unknown; statusCode?: unknown }).status ?? (error as { statusCode?: unknown }).statusCode;
+  return typeof candidate === 'number' ? candidate : undefined;
+};
+
+/**
+ * body-parser의 payload-too-large(413) 같은 요청 단계 오류는 서버 버그가 아니라
+ * 클라이언트가 보낸 요청 자체의 문제다. 500으로 뭉뚱그리면 실제 서버 장애와
+ * 구분이 안 돼 로그·운영 알림에서 원인 파악이 어려워지므로 상태 코드를 그대로 살린다.
+ */
+const CLIENT_ERROR_MESSAGES: Record<number, string> = {
+  413: '요청하신 내용이 너무 큽니다.\n입력하신 내용을 조금 줄여서 다시 시도해주세요.',
+};
+
 /**
  * 글로벌 에러 핸들러.
  * 스택 트레이스는 서버 로그에만 남기고 사용자에게는 노출하지 않는다.
@@ -30,14 +46,20 @@ export const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) =
   // 운영 채널로 알림 (실패해도 응답에는 영향을 주지 않도록 fire-and-forget)
   void notifyServerError({ method: req.method, path: req.path, error });
 
-  res.status(500).render('error', {
+  const rawStatus = readStatus(error);
+  const clientMessage = rawStatus ? CLIENT_ERROR_MESSAGES[rawStatus] : undefined;
+  const statusCode = clientMessage ? rawStatus! : 500;
+
+  res.status(statusCode).render('error', {
     pageTitle: '일시적인 오류가 발생했습니다',
     pageDescription: '서버에 일시적인 문제가 발생했습니다.',
-    statusCode: 500,
+    statusCode,
     heading: '일시적인 오류가 발생했습니다',
-    message: env.isProduction
-      ? '잠시 후 다시 시도해주세요.\n계속 문제가 발생하면 아래 연락처로 알려주시면 바로 도와드리겠습니다.'
-      : `개발 모드 상세: ${error instanceof Error ? error.message : String(error)}`,
+    message:
+      clientMessage ??
+      (env.isProduction
+        ? '잠시 후 다시 시도해주세요.\n계속 문제가 발생하면 아래 연락처로 알려주시면 바로 도와드리겠습니다.'
+        : `개발 모드 상세: ${error instanceof Error ? error.message : String(error)}`),
     showContact: true,
   });
 };

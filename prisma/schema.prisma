@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// 설계사 PR/포트폴리오 게시글 ("이야기")
+/// 고객 접수 데이터와 무관하며, 설계사 본인이 작성하는 공개 콘텐츠만 저장한다.
+model Post {
+  id           Int      @id @default(autoincrement())
+  title        String   @db.VarChar(200)
+  /// 대표 이미지 저장 파일명 (UUID.ext) — 파일 자체가 아니라 파일명 문자열만 저장
+  mainImage    String   @db.VarChar(255)
+  /// Quill이 생성한 HTML. 본문 삽입 이미지는 <img src="/uploads/story/xxx.png"> 형태로 포함된다
+  content      String   @db.Text
+  /// 선택: 원문/출처 링크 — 상세 페이지에 "원문 보기" 버튼으로 노출
+  sourceUrl    String?  @db.VarChar(500)
+  /// 게시판 목록 상단 고정
+  isPinned     Boolean  @default(false)
+  /// 홈 슬라이드 노출 (isPinned과 별개)
+  showOnHome   Boolean  @default(false)
+  isPublished  Boolean  @default(true)
+  /// 오름차순 — 값이 작을수록 위에 온다
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isPinned, sortOrder])
+  @@map("posts")
+}

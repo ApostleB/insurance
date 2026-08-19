@@ -10,6 +10,8 @@ dist/
 # 업로드 파일 (고객 개인정보 포함)
 uploads/
 !uploads/.gitkeep
+public/uploads/
+!public/uploads/.gitkeep
 
 # 로그 (PM2 출력 포함)
 logs/

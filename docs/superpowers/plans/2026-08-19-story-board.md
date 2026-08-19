@@ -79,9 +79,16 @@
 
 - [ ] **Step 1: 의존성 설치**
 
+**Prisma는 반드시 6.x로 고정한다.** 버전을 생략하면 v7이 설치되는데,
+v7부터는 `datasource { url = env("DATABASE_URL") }`를 schema.prisma에 직접 쓰는 방식이
+폐기되고 `prisma.config.ts` + driver adapter 방식이 강제된다.
+아래 Step 3/4의 코드는 6.x 기준이므로 버전이 어긋나면 `P1012` 오류로 전부 무효가 된다.
+
 ```bash
-npm install @prisma/client express-session bcrypt multer sanitize-html
-npm install --save-dev prisma @types/express-session @types/bcrypt @types/multer @types/sanitize-html
+npm install --save-exact @prisma/client@6.19.3
+npm install express-session bcrypt multer sanitize-html
+npm install --save-dev --save-exact prisma@6.19.3
+npm install --save-dev @types/express-session @types/bcrypt @types/multer @types/sanitize-html
 ```
 
 - [ ] **Step 2: `.gitignore`에 업로드 폴더 추가**

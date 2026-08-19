@@ -84,6 +84,12 @@ export function deletePost(id: number): Promise<Post> {
  * 신규 글은 sortOrder=0으로 저장되므로 값이 전부 같을 수 있다.
  * 그 상태로 스왑하면 아무 변화가 없으므로, 조정 시점에 현재 표시 순서대로
  * 1,2,3...을 재부여한 뒤 인접한 두 글의 값을 맞바꾼다.
+ *
+ * 고정(isPinned) 그룹 경계를 넘는 이동은 수행하지 않는다.
+ * 정렬이 `isPinned DESC`를 최우선으로 적용하므로, 고정 글과 일반 글 사이에서
+ * sortOrder만 맞바꿔도 각 그룹 내부의 상대 순서는 그대로라 화면상 아무 효과가 없다
+ * (예: 고정 글 목록 끝에서 일반 글 목록 시작으로 넘어가는 이동). 고정 여부 자체는
+ * 관리자 목록의 '고정' 토글로 바꾸고, movePost는 같은 그룹 안에서만 순서를 바꾼다.
  */
 export async function movePost(id: number, direction: 'up' | 'down'): Promise<void> {
   const posts = await listAllPosts();
@@ -94,11 +100,15 @@ export async function movePost(id: number, direction: 'up' | 'down'): Promise<vo
   const currentIndex = renumbered.findIndex((post) => post.id === id);
   if (currentIndex === -1) return;
 
+  const current = renumbered[currentIndex]!;
+
   const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
   if (targetIndex < 0 || targetIndex >= renumbered.length) return; // 경계 밖이면 무시
 
-  const current = renumbered[currentIndex]!;
   const target = renumbered[targetIndex]!;
+  // 고정 그룹 경계를 넘는 이동은 화면상 아무 효과가 없으므로 수행하지 않는다
+  if (target.isPinned !== current.isPinned) return;
+
   const swapped = [current.sortOrder, target.sortOrder];
   current.sortOrder = swapped[1]!;
   target.sortOrder = swapped[0]!;

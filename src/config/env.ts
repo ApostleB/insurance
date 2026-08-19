@@ -7,8 +7,8 @@ dotenv.config();
  * 서버 기동 시 필수 환경변수를 검증한다.
  * 누락/형식 오류가 있으면 어떤 키가 왜 잘못됐는지 출력하고 프로세스를 종료한다.
  *
- * 참고: 이 서비스는 DB를 사용하지 않으므로 DATABASE_URL이 없다.
- *       접수 내용은 Discord 웹훅으로만 전달된다.
+ * 참고: 고객 접수 내용은 여전히 DB에 저장하지 않고 Discord 웹훅으로만 전달된다.
+ *       DATABASE_URL 등 DB 관련 값은 설계사가 작성하는 공개 게시판("이야기") 전용이다.
  */
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -25,6 +25,25 @@ const envSchema = z.object({
 
   SITE_URL: z.string().url('SITE_URL은 http(s)를 포함한 전체 URL이어야 합니다.'),
   SITE_NAME: z.string().min(1),
+
+  // ── 게시판("이야기") 전용 ────────────────────────────
+  // 고객 접수 데이터는 여전히 DB에 저장하지 않는다. 이 DB는 게시글 전용이다.
+  DATABASE_URL: z
+    .string()
+    .min(1, 'DATABASE_URL은 필수입니다.')
+    .startsWith('postgres', 'DATABASE_URL은 postgresql:// 형식이어야 합니다.'),
+
+  /** 관리자 비밀번호 bcrypt 해시 — 평문을 저장하지 않는다 */
+  ADMIN_PASSWORD_HASH: z
+    .string()
+    .min(1, 'ADMIN_PASSWORD_HASH는 필수입니다.')
+    .startsWith('$2', 'ADMIN_PASSWORD_HASH는 bcrypt 해시여야 합니다. ($2a$/$2b$로 시작)'),
+
+  SESSION_SECRET: z
+    .string()
+    .min(32, 'SESSION_SECRET은 32자 이상이어야 합니다. (openssl rand -hex 32)'),
+
+  MAX_IMAGE_SIZE_MB: z.coerce.number().int().positive().max(20).default(5),
 
   // 뷰/개인정보처리방침 렌더링용 (선택)
   // 뒤에 '설계사'가 붙어 렌더링되므로 이름만 넣는다. (예: 홍길동 → "홍길동 설계사가")
@@ -59,6 +78,8 @@ export const env = {
   ...raw,
   /** tel: 링크용으로 숫자만 남긴 전화번호 */
   CONTACT_PHONE_HREF: `tel:${raw.CONTACT_PHONE.replace(/[^0-9+]/g, '')}`,
+  /** 바이트 단위 최대 이미지 크기 */
+  MAX_IMAGE_SIZE_BYTES: raw.MAX_IMAGE_SIZE_MB * 1024 * 1024,
   /** SITE_URL 끝의 슬래시 제거 (canonical/sitemap 조합용) */
   SITE_ORIGIN: raw.SITE_URL.replace(/\/+$/, ''),
   isProduction: raw.NODE_ENV === 'production',

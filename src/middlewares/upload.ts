@@ -5,8 +5,15 @@ import multer from 'multer';
 import type { RequestHandler } from 'express';
 import { env } from '../config/env';
 
-/** 게시글 이미지 저장 경로 — 방문자에게 보여줘야 하므로 public 아래에 둔다. */
-export const STORY_UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'story');
+/**
+ * 게시글 이미지 저장 경로 — 방문자에게 보여줘야 하므로 public 아래에 둔다.
+ *
+ * `app.ts`의 정적 서빙 루트(`PUBLIC_DIR`)와 **반드시 같은 기준**이어야 한다.
+ * 그쪽이 `__dirname` 기반(개발: src/../public, 빌드: dist/../public)이므로 여기도 맞춘다.
+ * `process.cwd()`를 쓰면 실행 위치가 프로젝트 루트가 아닐 때
+ * 업로드는 성공하는데 정적 서빙 경로와 어긋나 이미지가 조용히 깨진다.
+ */
+export const STORY_UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads', 'story');
 
 fs.mkdirSync(STORY_UPLOAD_DIR, { recursive: true });
 

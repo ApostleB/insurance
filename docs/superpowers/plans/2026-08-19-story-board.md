@@ -1136,8 +1136,10 @@ git commit -m "feat: 이야기 게시판 공개 페이지 및 슬라이드 API"
 - Create: `src/views/admin/form.ejs`
 - Create: `public/js/admin-editor.js`
 - Modify: `src/routes/index.ts`
-- Modify: `src/views/partials/head.ejs`
 - Modify: `src/app.ts`
+
+> Quill CDN은 관리자 폼에서만 필요하므로 공용 `head.ejs`가 아니라
+> `admin/form.ejs`에 직접 넣는다. 공개 페이지에 불필요한 스크립트를 로드하지 않기 위함이다.
 
 **Interfaces:**
 - Consumes: `requireAdmin` (Task 5), `uploadMainImage`/`uploadEditorImage`/`toUploadError`/`STORY_UPLOAD_DIR` (Task 6), post.service 전체 (Task 4), `postSchema` (Task 3)

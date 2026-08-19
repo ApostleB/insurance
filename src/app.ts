@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import express from 'express';
+import session from 'express-session';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env';
@@ -88,6 +89,23 @@ export function createApp(): express.Express {
   );
 
   app.use(morgan(env.isProduction ? 'combined' : 'dev'));
+
+  // 관리자 세션. 메모리 저장소를 쓰므로 재시작 시 로그아웃되지만,
+  // 관리자 1인이 가끔 쓰는 용도라 세션 DB까지는 두지 않는다.
+  app.use(
+    session({
+      secret: env.SESSION_SECRET,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        // 프로덕션은 nginx가 TLS를 종단하므로 secure 쿠키를 쓸 수 있다
+        secure: env.isProduction,
+        maxAge: 1000 * 60 * 60 * 12, // 12시간
+      },
+    }),
+  );
 
   // 폼 전송 전용 — JSON 본문은 사용하지 않으며, 과도한 페이로드를 차단한다.
   app.use(express.urlencoded({ extended: false, limit: '64kb' }));

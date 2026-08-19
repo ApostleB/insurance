@@ -21,3 +21,24 @@ export const formSubmitLimiter = rateLimit({
     });
   },
 });
+
+/**
+ * 관리자 로그인 시도 제한 — IP당 15분에 10회.
+ * 단일 비밀번호 구조라 무차별 대입에 취약하므로 반드시 필요하다.
+ */
+export const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).render('error', {
+      pageTitle: '잠시 후 다시 시도해주세요',
+      pageDescription: '로그인 시도가 너무 많습니다.',
+      statusCode: 429,
+      heading: '로그인 시도가 너무 많습니다',
+      message: '보안을 위해 15분간 로그인이 제한됩니다.\n잠시 후 다시 시도해주세요.',
+      showContact: false,
+    });
+  },
+});

@@ -10,6 +10,13 @@ export const renderLogin: RequestHandler = (_req, res) => {
   });
 };
 
+/**
+ * 로그인 처리.
+ *
+ * 주의: Express 4는 async 핸들러의 rejection을 에러 미들웨어로 자동 전달하지 않는다.
+ * 라우터에 연결할 때 반드시 `asyncHandler()`로 감쌀 것 — 감싸지 않으면
+ * bcrypt.compare가 reject될 경우 요청이 응답 없이 멈추고 프로세스가 죽을 수 있다.
+ */
 export const submitLogin: RequestHandler = async (req, res) => {
   const password = typeof req.body?.password === 'string' ? req.body.password : '';
   const isValid = password !== '' && (await bcrypt.compare(password, env.ADMIN_PASSWORD_HASH));

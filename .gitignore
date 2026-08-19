@@ -17,6 +17,9 @@ logs/
 npm-debug.log*
 .pm2/
 
+# SDD 작업 스크래치 (원장·브리프·리뷰 패키지)
+.superpowers/
+
 # 에디터 / OS
 .idea/
 .vscode/

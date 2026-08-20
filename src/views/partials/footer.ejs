@@ -6,9 +6,7 @@
     <dl class="mt-4 space-y-1.5 text-sm text-slate-600">
       <div class="flex gap-2">
         <dt class="w-14 shrink-0 text-slate-400">전화</dt>
-        <!-- 번호를 텍스트로 노출하지 않는다. 아래 카카오톡 행과 같이 라벨만 두고 tel:로 연결한다. -->
-        <dd><a href="<%= contactPhoneHref %>" aria-label="전화로 바로 상담하기"
-               class="font-medium text-slate-700 underline underline-offset-2">바로 전화하기</a></dd>
+        <dd><a href="<%= contactPhoneHref %>" class="font-medium text-slate-700 underline underline-offset-2"><%= contactPhone %></a></dd>
       </div>
       <div class="flex gap-2">
         <dt class="w-14 shrink-0 text-slate-400">카카오톡</dt>

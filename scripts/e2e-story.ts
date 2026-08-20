@@ -259,13 +259,25 @@ async function main() {
       `이웃 id=${upNeighbor?.id}, isPinned=${upNeighbor?.isPinned}`,
     );
 
+    // 화면 순서(index)로는 이 가드를 검증할 수 없다.
+    // 정렬이 isPinned를 최우선으로 보므로, 경계에서 sortOrder를 맞바꿔도
+    // 각 그룹 내부의 상대 순서는 원래 안 바뀌어 index는 가드 유무와 무관하게 동일하다.
+    // 가드가 실제로 막는 것은 "전체 글의 sortOrder를 재기록하는 불필요한 쓰기"이므로
+    // DB의 raw sortOrder가 그대로인지를 본다.
+    const sortOrdersBefore = beforeBoundary.map((p) => `${p.id}:${p.sortOrder}`).join(',');
     await movePost(normalB.id, 'up');
     const afterBoundary = await listAllPosts();
     const normalBIdxAfter = afterBoundary.findIndex((p) => p.id === normalB.id);
+    const sortOrdersAfter = afterBoundary.map((p) => `${p.id}:${p.sortOrder}`).join(',');
     check(
-      '고정↔일반 경계를 넘는 이동은 무동작',
+      '고정↔일반 경계를 넘는 이동은 화면 순서를 바꾸지 않음',
       normalBIdxAfter === normalBIdx,
       `이동 전 ${normalBIdx}위 → 이동 후 ${normalBIdxAfter}위`,
+    );
+    check(
+      '고정↔일반 경계를 넘는 이동은 DB를 건드리지 않음 (회귀)',
+      sortOrdersAfter === sortOrdersBefore,
+      sortOrdersAfter === sortOrdersBefore ? 'sortOrder 전부 그대로' : `변경됨: ${sortOrdersBefore} → ${sortOrdersAfter}`,
     );
 
     // 8-b. 고정 그룹 안에서는 이동이 정상 동작해야 한다.

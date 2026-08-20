@@ -17,10 +17,13 @@
           <%= post.createdAt.toISOString().slice(0, 10).replace(/-/g, '.') %>
         </p>
 
+        <!-- 본문은 선택 입력이므로 비어 있을 수 있다. 그때는 빈 여백을 만들지 않는다. -->
+        <% if (post.content && post.content.trim()) { %>
         <!-- 본문은 저장 시점에 서버에서 sanitize를 마쳤다 (sanitize.service.ts) -->
         <div class="story-content mt-6 text-[15px] leading-relaxed text-slate-700">
           <%- post.content %>
         </div>
+        <% } %>
 
         <% if (post.sourceUrl) { %>
         <a href="<%= post.sourceUrl %>" target="_blank" rel="noopener noreferrer"

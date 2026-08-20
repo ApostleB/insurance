@@ -318,6 +318,53 @@ async function main() {
     check('제목 에러 메시지 노출', xssHtml.includes('제목을 입력해주세요'));
     check('script 페이로드가 재렌더링 화면에 반사되지 않음', !xssHtml.includes('alert(1)'));
     check('정상 문단은 유지됨', xssHtml.includes('정상 문단'));
+
+    // ── 10. 본문 없이 저장 (자격증 사진처럼 이미지 한 장만 올리는 경우) ──
+    console.log('\n[10] 본문 없이 저장');
+    const emptyContentCases: Array<[string, unknown]> = [
+      ['본문 필드 자체가 없음', undefined],
+      ['빈 문자열', ''],
+      ['공백만', '   '],
+    ];
+    for (const [label, content] of emptyContentCases) {
+      const parsed = postSchema.safeParse({
+        title: '본문 없는 글',
+        isPinned: false,
+        showOnHome: false,
+        isPublished: true,
+        ...(content === undefined ? {} : { content }),
+      });
+      check(
+        `본문 미입력 허용 — ${label}`,
+        parsed.success,
+        parsed.success ? '' : JSON.stringify(parsed.error.flatten().fieldErrors.content),
+      );
+      // 컬럼이 NOT NULL이므로 null/undefined가 아니라 빈 문자열로 정규화되어야 한다
+      check(
+        `본문 미입력 시 빈 문자열로 정규화 — ${label}`,
+        parsed.success && parsed.data.content === '',
+        parsed.success ? `실제 ${JSON.stringify(parsed.data.content)}` : '파싱 실패',
+      );
+    }
+
+    // 스키마만이 아니라 DB 저장 → 상세 페이지 렌더까지 실제로 통과하는지 확인한다
+    const noContent = await createPost({
+      title: '[E2E] 본문 없는 글',
+      content: '',
+      mainImage: 'e2e-test.jpg',
+      sourceUrl: undefined,
+      isPinned: false,
+      showOnHome: false,
+      isPublished: true,
+    });
+    createdIds.push(noContent.id);
+    check('본문 없는 글이 DB에 저장됨', noContent.content === '', `실제 ${JSON.stringify(noContent.content)}`);
+
+    const noContentRes = await fetch(`${base}/story/${noContent.id}`);
+    const noContentHtml = await noContentRes.text();
+    check('본문 없는 글 상세 → 200', noContentRes.status === 200, `실제 ${noContentRes.status}`);
+    check('제목은 정상 노출', noContentHtml.includes('[E2E] 본문 없는 글'));
+    check('빈 본문 div는 렌더링하지 않음', !noContentHtml.includes('class="story-content'));
   } finally {
     // 테스트가 만든 데이터를 반드시 정리한다
     if (createdIds.length > 0) {

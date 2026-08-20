@@ -8,7 +8,7 @@
 
   var quill = new Quill(editorEl, {
     theme: 'snow',
-    placeholder: '내용을 입력해주세요.',
+    placeholder: '내용을 입력해주세요. (선택 — 비워두면 대표 이미지만 표시됩니다)',
     modules: {
       toolbar: {
         container: [

@@ -36,6 +36,7 @@ npm run dev            # http://localhost:3000
 | `npm start` | 빌드 결과 실행 |
 | `npm run typecheck` | 타입 검사만 수행 |
 | `npm test` | 접수 전 과정 e2e 검증 (로컬 스텁 웹훅 사용 — 실제 Discord로 전송되지 않음) |
+| `npm run test:story` | 게시판 e2e 검증 (실제 DB 사용, 테스트 데이터는 자동 정리) |
 | `npm run deploy` | 빌드 후 PM2로 기동/무중단 리로드 |
 | `npm run pm2:logs` | PM2 로그 확인 |
 
@@ -97,6 +98,10 @@ nginx 설정 예시는 [deploy/nginx/insurance.conf](deploy/nginx/insurance.conf
 | `SITE_NAME` | ✅ | 사이트명 (헤더·푸터·Discord username) |
 | `AGENT_NAME` | | 설계사 이름 **(이름만 입력 — 뒤에 '설계사'가 자동으로 붙음)** |
 | `AGENT_EMAIL` | | 개인정보 보호책임자 이메일 (없으면 노출 안 됨) |
+| `DATABASE_URL` | ✅ | 게시글 저장용 PostgreSQL (고객 접수 데이터는 저장하지 않음) |
+| `ADMIN_PASSWORD_HASH` | ✅ | 관리자 비밀번호 bcrypt 해시 |
+| `SESSION_SECRET` | ✅ | 세션 서명 키 (32자 이상) |
+| `MAX_IMAGE_SIZE_MB` | | 업로드 이미지 최대 크기 (기본 5) |
 
 ## 디렉토리 구조
 
@@ -138,6 +143,11 @@ public/                       # 정적 리소스 (favicon, js)
 | GET | `/privacy` | 개인정보처리방침 |
 | GET | `/sitemap.xml`, `/robots.txt` | SEO |
 | GET | `/health` | 헬스체크 |
+| GET | `/story` | 이야기 목록 |
+| GET | `/story/:id` | 이야기 상세 |
+| GET | `/api/story/slides` | 홈 슬라이드용 JSON |
+| GET/POST | `/admin/login` | 관리자 로그인 |
+| GET | `/admin/story` | 게시글 관리 |
 
 ## Discord 알림 3종
 
@@ -165,6 +175,9 @@ description은 4096자까지 허용되므로 유실 없이 전달됩니다. (`np
 - **Rate Limit**: IP당 15분에 5회. 초과 시 전화·카톡 버튼이 있는 429 페이지를 렌더링합니다.
 - **CSP**: Tailwind Play CDN이 브라우저에서 CSS를 컴파일하므로 `script-src`에 `'unsafe-eval'`, `style-src`에 `'unsafe-inline'`이 필요합니다. 빌드 타임 Tailwind(CLI/PostCSS)로 전환하면 두 항목을 제거할 수 있습니다.
 - **프록시**: `trust proxy = 1`로 설정되어 있어 nginx 등 리버스 프록시 1단 뒤에서 클라이언트 IP를 정확히 인식합니다.
+- **게시판 XSS 방어**: Quill이 만든 본문 HTML은 상세 페이지에서 이스케이프 없이 출력되므로, 저장 시점에 서버에서 `sanitize-html`로 걸러냅니다([sanitize.service.ts](src/services/sanitize.service.ts)). 클라이언트 검증에 의존하지 않습니다.
+- **게시판 이미지**: `public/uploads/story/`에 공개 서빙됩니다. 고객 접수 데이터와 달리 방문자에게 보여줘야 하는 콘텐츠이기 때문입니다. 파일명은 UUID로 재생성하고 MIME·확장자를 이중 검증합니다.
+- **고아 이미지**: 글 삭제 시 대표 이미지만 함께 지웁니다. 본문에 삽입된 이미지는 남습니다(의도된 트레이드오프 — 스펙 참고).
 
 ## 배포 전 체크리스트
 
@@ -177,3 +190,6 @@ description은 4096자까지 허용되므로 유실 없이 전달됩니다. (`np
 - [ ] `src/views/privacy.ejs`의 시행일자 확인
 - [ ] `npm run deploy` → `npx pm2 save` → `npx pm2 startup`
 - [ ] HTTPS 적용 (개인정보 전송 구간 암호화) — 프록시에서 종단 처리
+- [ ] 배포 서버 `.env`에 `DATABASE_URL`, `ADMIN_PASSWORD_HASH`, `SESSION_SECRET` 설정
+- [ ] 배포 서버에서 `npx prisma migrate deploy` 실행
+- [ ] `public/uploads/story/` 디렉토리 쓰기 권한 확인

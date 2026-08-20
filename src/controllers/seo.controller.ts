@@ -4,6 +4,7 @@ import { env } from '../config/env';
 /** sitemap에 포함할 정적 페이지 목록 */
 const STATIC_PATHS: Array<{ path: string; changefreq: string; priority: string }> = [
   { path: '/', changefreq: 'monthly', priority: '1.0' },
+  { path: '/story', changefreq: 'weekly', priority: '0.8' },
   { path: '/consultation', changefreq: 'monthly', priority: '0.9' },
   { path: '/claim', changefreq: 'monthly', priority: '0.9' },
   { path: '/privacy', changefreq: 'yearly', priority: '0.3' },
@@ -32,6 +33,7 @@ export const robots: RequestHandler = (_req, res) => {
   res.type('text/plain').send(`User-agent: *
 Allow: /
 Disallow: /health
+Disallow: /admin
 
 Sitemap: ${env.SITE_ORIGIN}/sitemap.xml
 `);

@@ -9,6 +9,7 @@ import {
 } from '../controllers/inquiry.controller';
 import { healthCheck, renderHome, renderPrivacy } from '../controllers/page.controller';
 import { robots, sitemap } from '../controllers/seo.controller';
+import { renderStoryDetail, renderStoryList, slidesApi } from '../controllers/story.controller';
 import { asyncHandler } from '../middlewares/errorHandler';
 import { formSubmitLimiter } from '../middlewares/rateLimiter';
 
@@ -26,6 +27,11 @@ router.get('/consultation/complete', renderConsultationComplete);
 router.get('/claim', renderClaimForm);
 router.post('/claim', formSubmitLimiter, asyncHandler(submitClaim));
 router.get('/claim/complete', renderClaimComplete);
+
+// 이야기 (게시판)
+router.get('/story', asyncHandler(renderStoryList));
+router.get('/story/:id', asyncHandler(renderStoryDetail));
+router.get('/api/story/slides', asyncHandler(slidesApi));
 
 // 개인정보처리방침
 router.get('/privacy', renderPrivacy);

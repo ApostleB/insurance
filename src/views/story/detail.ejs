@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <%- include('../partials/head') %>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 antialiased selection:bg-brand-600 selection:text-white">
+  <%- include('../partials/header') %>
+
+  <main class="mx-auto max-w-3xl px-4 pb-28 sm:pb-8">
+    <article class="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <img src="/uploads/story/<%= post.mainImage %>" alt="<%= post.title %>"
+           class="w-full object-cover">
+
+      <div class="p-5 sm:p-8">
+        <h1 class="text-2xl font-black leading-snug tracking-tight text-slate-900"><%= post.title %></h1>
+        <p class="mt-2 text-xs text-slate-400">
+          <%= post.createdAt.toISOString().slice(0, 10).replace(/-/g, '.') %>
+        </p>
+
+        <!-- 본문은 저장 시점에 서버에서 sanitize를 마쳤다 (sanitize.service.ts) -->
+        <div class="story-content mt-6 text-[15px] leading-relaxed text-slate-700">
+          <%- post.content %>
+        </div>
+
+        <% if (post.sourceUrl) { %>
+        <a href="<%= post.sourceUrl %>" target="_blank" rel="noopener noreferrer"
+           class="mt-8 inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
+          원문 보기 ↗
+        </a>
+        <% } %>
+      </div>
+    </article>
+
+    <div class="mt-5">
+      <a href="/story" class="inline-flex h-12 items-center justify-center rounded-xl bg-slate-100 px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-200">
+        목록으로
+      </a>
+    </div>
+  </main>
+
+  <%- include('../partials/footer') %>
+  <%- include('../partials/floating-contact') %>
+  <script src="/js/app.js" defer></script>
+
+  <style>
+    .story-content p { margin-bottom: 1rem; }
+    .story-content h1 { font-size: 1.5rem; font-weight: 800; margin: 1.5rem 0 0.75rem; }
+    .story-content h2 { font-size: 1.25rem; font-weight: 800; margin: 1.5rem 0 0.75rem; }
+    .story-content h3 { font-size: 1.1rem; font-weight: 700; margin: 1.25rem 0 0.5rem; }
+    .story-content ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 1rem; }
+    .story-content ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 1rem; }
+    .story-content li { margin-bottom: 0.25rem; }
+    .story-content a { color: #2563eb; text-decoration: underline; }
+    .story-content img { max-width: 100%; height: auto; border-radius: 0.75rem; margin: 1rem 0; }
+    .story-content blockquote {
+      border-left: 3px solid #cbd5e1; padding-left: 1rem; color: #64748b; margin: 1rem 0;
+    }
+  </style>
+</body>
+</html>

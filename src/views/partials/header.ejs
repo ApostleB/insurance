@@ -5,6 +5,10 @@
     </a>
 
     <nav class="flex items-center gap-1">
+      <a href="/story"
+         class="rounded-lg px-3 py-1.5 text-xs font-bold transition <%= currentPath.startsWith('/story') ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100' %>">
+        이야기
+      </a>
       <a href="/consultation"
          class="rounded-lg px-3 py-1.5 text-xs font-bold transition <%= currentPath.startsWith('/consultation') ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100' %>">
         설계신청

@@ -33,4 +33,8 @@
 <script src="/js/tailwind-config.js"></script>
 <style>
   body { -webkit-tap-highlight-color: transparent; }
+  /* call.png은 투명 배경의 검은 실루엣이라 어두운 버튼 위에서는 보이지 않는다.
+     흰색으로 뒤집어 쓴다. filter를 못 쓰는 환경에서도 검은 아이콘이 그대로
+     남을 뿐이라 안전하게 degrade된다. */
+  .icon-invert { filter: brightness(0) invert(1); }
 </style>

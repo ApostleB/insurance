@@ -6,6 +6,7 @@
   var RESUME_DELAY_MS = 3000;  // 터치 조작 후 재개까지 대기
   var SWIPE_THRESHOLD = 50;    // 스와이프로 인정할 최소 이동 px
   var DIRECTION_LOCK_PX = 8;   // 이 정도 움직여야 가로/세로 방향을 판정한다
+  var SYNTHETIC_MOUSE_MS = 700; // 터치 직후 브라우저가 만들어내는 합성 마우스 이벤트를 무시할 시간
 
   var section = document.getElementById('story-slider');
   if (!section) return;
@@ -20,6 +21,10 @@
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var TRANSITION_MS = prefersReduced ? 0 : 450;
 
+  /** 마우스처럼 정밀한 포인터가 있는 기기인지. 화살표 버튼은 여기서만 만든다. */
+  var hasFinePointer = typeof window.matchMedia === 'function'
+    && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
   var slides = [];      // 서버에서 받은 원본 슬라이드
   var index = 0;        // 지금 보이는 원본 슬라이드 번호 (0 ~ slides.length-1)
   var pos = 0;          // 트랙 상의 위치 (클론 포함)
@@ -32,7 +37,7 @@
 
   /**
    * 트랙을 옮긴다. 페이지가 아니라 트랙만 움직이므로 스크롤이 발생하지 않는다.
-   * extraPx는 손가락을 따라가는 드래그 오프셋이다.
+   * extraPx는 손가락/커서를 따라가는 드래그 오프셋이다.
    */
   function applyTransform(extraPx, animate) {
     track.style.transition = animate && TRANSITION_MS > 0
@@ -99,13 +104,22 @@
     applyTransform(0, false);
   }
 
+  /** 화살표·도트·키보드가 공통으로 쓰는 이동. 진행 중인 전환을 먼저 정리한다. */
+  function go(delta) {
+    if (slides.length < 2) return;
+    settle();
+    moveTo(index + delta, true);
+    restart();
+  }
+
   function syncDots() {
     if (!dotsWrap) return;
-    var dots = dotsWrap.querySelectorAll('[data-dot]');
-    for (var i = 0; i < dots.length; i += 1) {
-      dots[i].className = i === index
-        ? 'h-1.5 w-4 rounded-full bg-white transition-all'
-        : 'h-1.5 w-1.5 rounded-full bg-white/50 transition-all';
+    // 눈에 보이는 막대는 버튼 안쪽 span이다 (버튼 자체는 히트 영역이라 더 크다)
+    var bars = dotsWrap.querySelectorAll('[data-dot-bar]');
+    for (var i = 0; i < bars.length; i += 1) {
+      bars[i].className = i === index
+        ? 'block h-1.5 w-4 rounded-full bg-white transition-all'
+        : 'block h-1.5 w-1.5 rounded-full bg-white/50 transition-all';
     }
   }
 
@@ -127,7 +141,10 @@
   function buildItem(slide, isClone) {
     var item = document.createElement('a');
     item.href = slide.href;
-    item.className = 'slider-item relative block h-full w-full shrink-0';
+    item.className = 'slider-item relative block h-full w-full shrink-0 select-none';
+    // <a>는 기본적으로 드래그 가능하다. 끄지 않으면 데스크톱에서 잡는 순간
+    // 브라우저가 네이티브 링크 드래그를 시작해 슬라이드가 커서를 따라오지 않는다.
+    item.draggable = false;
     if (isClone) {
       // 클론은 같은 글이 두 번 읽히거나 탭 이동에 걸리지 않도록 보조기술에서 숨긴다
       item.setAttribute('aria-hidden', 'true');
@@ -141,7 +158,7 @@
     img.className = 'h-full w-full select-none object-cover';
 
     var overlay = document.createElement('div');
-    overlay.className = 'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-5';
+    overlay.className = 'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-5 pb-8';
 
     var titleEl = document.createElement('p');
     titleEl.className = 'text-base font-bold text-white';
@@ -151,6 +168,57 @@
     item.appendChild(img);
     item.appendChild(overlay);
     return item;
+  }
+
+  /**
+   * 이전/다음 화살표를 만든다.
+   *
+   * 터치 기기에는 스와이프가 있어 화면만 가리므로 정밀 포인터 기기에서만 만든다.
+   * 데스크톱에는 스와이프를 알려줄 방법이 없어서, 눈에 보이는 컨트롤이 없으면
+   * 사용자 입장에서는 조작할 수단이 아예 없는 것과 같다.
+   */
+  function buildArrow(dir) {
+    var isPrev = dir === 'prev';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', isPrev ? '이전 슬라이드' : '다음 슬라이드');
+    btn.className = 'absolute top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center '
+      + 'rounded-full bg-black/35 text-white opacity-70 backdrop-blur-sm transition '
+      + 'hover:bg-black/60 hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white '
+      + (isPrev ? 'left-3' : 'right-3');
+
+    // 아이콘도 innerHTML 조립 없이 DOM으로 만든다
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2.2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('class', 'h-5 w-5');
+    svg.setAttribute('aria-hidden', 'true');
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    line.setAttribute('points', isPrev ? '15 5 8 12 15 19' : '9 5 16 12 9 19');
+    svg.appendChild(line);
+    btn.appendChild(svg);
+
+    btn.addEventListener('click', function () { go(isPrev ? -1 : 1); });
+    return btn;
+  }
+
+  function buildDot(i) {
+    var dot = document.createElement('button');
+    dot.type = 'button';
+    dot.setAttribute('data-dot', String(i));
+    dot.setAttribute('aria-label', (i + 1) + '번째 슬라이드');
+    // 버튼은 커서/손가락이 닿을 만큼 키우고, 보이는 막대는 안쪽 span이 그린다.
+    // 예전엔 버튼 자체가 6px이라 데스크톱에서 사실상 누를 수 없었다.
+    dot.className = 'flex h-6 w-5 items-center justify-center focus:outline-none';
+    var bar = document.createElement('span');
+    bar.setAttribute('data-dot-bar', '');
+    bar.className = 'block h-1.5 w-1.5 rounded-full bg-white/50 transition-all';
+    dot.appendChild(bar);
+    return dot;
   }
 
   function render() {
@@ -170,22 +238,22 @@
     if (dotsWrap) {
       dotsWrap.innerHTML = '';
       if (loop) {
-        slides.forEach(function (_, i) {
-          var dot = document.createElement('button');
-          dot.type = 'button';
-          dot.setAttribute('data-dot', String(i));
-          dot.setAttribute('aria-label', (i + 1) + '번째 슬라이드');
-          dot.className = 'h-1.5 w-1.5 rounded-full bg-white/50 transition-all';
-          dotsWrap.appendChild(dot);
-        });
+        slides.forEach(function (_, i) { dotsWrap.appendChild(buildDot(i)); });
         dotsWrap.addEventListener('click', function (event) {
-          var dot = event.target.getAttribute('data-dot');
-          if (dot === null) return;
-          settle(); // 진행 중인 전환을 정리하고 목표 위치로 간다
-          moveTo(Number(dot), true);
-          restart();
+          // 막대(span)가 클릭될 수 있으므로 버튼까지 거슬러 올라가 찾는다
+          var btn = event.target && event.target.closest
+            ? event.target.closest('[data-dot]')
+            : null;
+          if (!btn) return;
+          go(Number(btn.getAttribute('data-dot')) - index);
         });
       }
+    }
+
+    if (loop && hasFinePointer) {
+      viewport.appendChild(buildArrow('prev'));
+      viewport.appendChild(buildArrow('next'));
+      viewport.style.cursor = 'grab'; // 끌 수 있다는 걸 커서로도 알린다
     }
 
     // 첫 위치는 애니메이션 없이 잡는다
@@ -251,25 +319,54 @@
     }, RESUME_DELAY_MS);
   }
 
-  // ── 터치 스와이프 ────────────────────────────────────
+  // ── 드래그 (터치·마우스 공용) ────────────────────────
 
   var startX = 0;
   var startY = 0;
   var dragDx = 0;
-  var decided = false;  // 가로/세로 방향 판정을 마쳤는지
-  var dragging = false; // 가로 드래그로 확정됐는지
-  var swiped = false;   // 방금 스와이프였는지 (링크 클릭 억제용)
+  var decided = false;   // 가로/세로 방향 판정을 마쳤는지
+  var dragging = false;  // 가로 드래그로 확정됐는지
+  var swiped = false;    // 방금 스와이프였는지 (링크 클릭 억제용)
+  var lastTouchAt = 0;   // 터치가 만들어낸 합성 마우스 이벤트를 걸러내기 위한 시각
 
-  function onTouchStart(e) {
-    if (slides.length < 2) return;
-    var t = e.changedTouches[0];
-    startX = t.clientX;
-    startY = t.clientY;
+  /** 드래그를 시작할 공통 상태를 잡는다. */
+  function beginDrag(x, y) {
+    startX = x;
+    startY = y;
     dragDx = 0;
     decided = false;
     dragging = false;
     swiped = false;
     stop();
+  }
+
+  /**
+   * 드래그를 마무리한다. 문턱을 넘겼으면 넘기고, 못 넘겼으면 제자리로 되돌린다.
+   * 터치와 마우스가 같은 판정을 쓰도록 한 곳에 모아둔다.
+   */
+  function finishDrag() {
+    if (dragging) {
+      if (Math.abs(dragDx) >= SWIPE_THRESHOLD) {
+        swiped = true;
+        // 왼쪽으로 밀면 다음, 오른쪽으로 밀면 이전
+        moveTo(index + (dragDx < 0 ? 1 : -1), true);
+      } else {
+        applyTransform(0, true); // 문턱을 못 넘었으면 제자리로 되돌린다
+      }
+    }
+    decided = false;
+    dragging = false;
+    dragDx = 0;
+    restart();
+  }
+
+  // ── 터치 스와이프 ────────────────────────────────────
+
+  function onTouchStart(e) {
+    if (slides.length < 2) return;
+    lastTouchAt = Date.now();
+    var t = e.changedTouches[0];
+    beginDrag(t.clientX, t.clientY);
   }
 
   /**
@@ -302,19 +399,51 @@
 
   function onTouchEnd() {
     if (slides.length < 2) return;
-    if (dragging) {
-      if (Math.abs(dragDx) >= SWIPE_THRESHOLD) {
-        swiped = true;
-        // 왼쪽으로 밀면 다음, 오른쪽으로 밀면 이전
-        moveTo(index + (dragDx < 0 ? 1 : -1), true);
-      } else {
-        applyTransform(0, true); // 문턱을 못 넘었으면 제자리로 되돌린다
-      }
+    lastTouchAt = Date.now();
+    finishDrag();
+  }
+
+  // ── 마우스 드래그 (데스크톱) ─────────────────────────
+
+  /**
+   * 데스크톱에는 touch 이벤트가 아예 오지 않는다(maxTouchPoints: 0).
+   * 터치 경로만 있으면 PC에서는 드래그·스와이프가 전부 무반응이라
+   * 사실상 조작할 방법이 없어진다. 같은 드래그 상태 기계에 마우스를 물린다.
+   *
+   * 세로 판정을 두지 않는 이유: 마우스 드래그는 페이지 스크롤과 경쟁하지 않으므로
+   * 가로로 움직였는지만 보면 충분하고, 그 편이 더 예측 가능하다.
+   */
+  function onMouseDown(e) {
+    if (slides.length < 2) return;
+    if (e.button !== 0) return;                              // 좌클릭만
+    if (Date.now() - lastTouchAt < SYNTHETIC_MOUSE_MS) return; // 터치가 만든 합성 이벤트 무시
+
+    beginDrag(e.clientX, e.clientY);
+    // 텍스트 선택과 네이티브 링크 드래그를 막는다
+    e.preventDefault();
+    viewport.style.cursor = 'grabbing';
+    // 커서가 슬라이더 밖으로 나가도 드래그가 이어지도록 window에 건다
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
+  function onMouseMove(e) {
+    var dx = e.clientX - startX;
+    if (!decided) {
+      if (Math.abs(dx) < DIRECTION_LOCK_PX) return;
+      decided = true;
+      dragging = true;
+      settle();
     }
-    decided = false;
-    dragging = false;
-    dragDx = 0;
-    restart();
+    dragDx = dx;
+    applyTransform(dx, false); // 커서를 따라 트랙만 움직인다
+  }
+
+  function onMouseUp() {
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+    viewport.style.cursor = 'grab';
+    finishDrag();
   }
 
   // ── 초기화 ──────────────────────────────────────────
@@ -349,7 +478,19 @@
       // 전화 수신·시스템 제스처 등으로 touchend가 오지 않는 경우에도 재개되도록 한다
       viewport.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
-      // 스와이프로 끝난 제스처가 링크 이동까지 발동시키지 않게 막는다
+      // 데스크톱: 마우스로 끌어서 넘긴다
+      viewport.addEventListener('mousedown', onMouseDown);
+      // 드래그가 네이티브 이미지/링크 드래그로 새는 것을 한 번 더 막는다
+      viewport.addEventListener('dragstart', function (event) { event.preventDefault(); });
+
+      // 키보드: 슬라이더 안에 포커스가 있을 때 ←/→ 로 넘긴다
+      section.addEventListener('keydown', function (event) {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        go(event.key === 'ArrowLeft' ? -1 : 1);
+      });
+
+      // 스와이프/드래그로 끝난 제스처가 링크 이동까지 발동시키지 않게 막는다
       viewport.addEventListener('click', function (event) {
         if (!swiped) return;
         swiped = false;

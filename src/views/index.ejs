@@ -55,7 +55,9 @@
            class="relative aspect-[16/10] overflow-hidden rounded-3xl bg-slate-200 shadow-sm">
         <!-- 슬라이드를 가로로 늘어놓고 트랙 전체를 translateX로 민다 -->
         <div data-slider-track class="flex h-full w-full will-change-transform"></div>
-        <div data-slider-dots class="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5"></div>
+        <!-- 도트 버튼은 커서로 누를 수 있도록 24px 높이의 히트 영역을 갖는다.
+             보이는 막대는 버튼 안쪽 span이라 bottom/gap으로 위치를 보정한다. (story-slider.js) -->
+        <div data-slider-dots class="absolute bottom-1 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0"></div>
       </div>
     </section>
 

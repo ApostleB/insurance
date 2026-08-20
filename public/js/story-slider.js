@@ -17,8 +17,6 @@
   var index = 0;
   var timer = null;
   var resumeTimer = null;
-  /** 마우스를 올려두었거나 손가락을 대고 있는 동안 true — 이때는 자동 전환을 재개하지 않는다 */
-  var isInteracting = false;
 
   /**
    * 슬라이드/점 DOM을 그린다.
@@ -103,29 +101,52 @@
     timer = setInterval(function () { show(index + 1); }, AUTO_MS);
   }
 
-  /**
-   * 자동 전환을 멈춘다.
-   *
-   * 예약된 재개 타이머(resumeTimer)도 함께 취소한다.
-   * 이걸 남겨두면 정지 상태인데도 예약된 start가 뒤늦게 발동해 되살아난다.
-   */
+  /** 진행 중인 자동 전환만 멈춘다. 예약된 재개(resumeTimer)는 건드리지 않는다. */
   function stop() {
     if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  /**
+   * 자동 전환을 멈추고 예약된 재개까지 취소한다.
+   *
+   * 마우스가 슬라이더 위에 올라온 경우처럼, 사용자가 명시적으로 머무는 동안
+   * 뒤늦게 예약이 발동해 되살아나는 것을 막을 때 쓴다.
+   * 터치 경로에서는 쓰지 않는다 — 터치 기기는 mouseleave가 오지 않아
+   * 재개 계기가 사라지면 자동 전환이 영영 멈춘다.
+   */
+  function stopAndCancelResume() {
+    stop();
     if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+  }
+
+  /**
+   * 마우스가 지금 슬라이더 위에 올라가 있는지 실제 DOM 상태로 판정한다.
+   *
+   * 플래그 변수로 추적하지 않는 이유: mouseenter/touchstart로 켜고
+   * mouseleave/touchend로 끄는 방식은 짝이 맞지 않으면 영구 고착된다.
+   * 실제로 모바일에서 탭하면 브라우저가 합성 mouseenter를 발생시키는데
+   * mouseleave는 오지 않아, 자동 전환이 영영 멈추는 문제가 있었다.
+   * (touchcancel로 touchend가 유실되는 경우도 마찬가지)
+   * 매번 조회하면 상태를 들고 있지 않으므로 고착될 수 없다.
+   */
+  function isPointerOver() {
+    return typeof section.matches === 'function' && section.matches(':hover');
   }
 
   /**
    * 조작 직후 잠시 멈췄다가 다시 자동 전환을 시작한다.
    *
-   * 단, 사용자가 아직 슬라이더를 만지고 있으면(마우스를 올려둔 채이거나
-   * 손가락을 대고 있으면) 재개를 예약하지 않는다.
-   * 예약해버리면 "마우스를 올린 채 도트를 클릭"했을 때 정지 상태여야 하는데도
-   * 몇 초 뒤 슬라이드가 넘어가 버린다.
+   * 재개 시점에 마우스가 여전히 슬라이더 위에 있으면 다시 멈춘다.
+   * 이렇게 해야 "마우스를 올린 채 도트를 클릭"해도 정지 상태가 유지되면서,
+   * 터치 기기에서 플래그가 고착돼 영영 멈추는 일도 없다.
    */
   function restart() {
-    stop();
-    if (isInteracting) return; // 포인터를 떼는 시점(mouseleave/touchend)에 재개된다
-    resumeTimer = setTimeout(start, RESUME_DELAY_MS);
+    stopAndCancelResume();
+    resumeTimer = setTimeout(function () {
+      resumeTimer = null;
+      if (isPointerOver()) return; // 아직 호버 중이면 mouseleave가 재개를 맡는다
+      start();
+    }, RESUME_DELAY_MS);
   }
 
   fetch('/api/story/slides')
@@ -139,26 +160,21 @@
       render();
       start();
 
-      // 데스크톱: 마우스를 올리면 멈추고 떼면 다시 돈다
-      section.addEventListener('mouseenter', function () {
-        isInteracting = true;
-        stop();
-      });
-      section.addEventListener('mouseleave', function () {
-        isInteracting = false;
-        start();
-      });
+      // 데스크톱: 마우스를 올리면 멈추고 떼면 다시 돈다.
+      // 예약된 재개는 취소하지 않는다 — 재개 콜백이 isPointerOver()로 호버 여부를
+      // 다시 확인하므로 호버 중에는 어차피 재개되지 않고, 터치 기기에서
+      // 합성 mouseenter가 예약을 지워 영영 멈추는 일도 없다.
+      section.addEventListener('mouseenter', stop);
+      section.addEventListener('mouseleave', start);
 
       // 모바일: 터치 중에는 멈추고, 뗀 뒤 잠시 후 재개한다
       var touchStartX = 0;
       section.addEventListener('touchstart', function (e) {
-        isInteracting = true;
         stop();
         touchStartX = e.changedTouches[0].screenX;
       }, { passive: true });
 
       section.addEventListener('touchend', function (e) {
-        isInteracting = false;
         var deltaX = e.changedTouches[0].screenX - touchStartX;
         if (Math.abs(deltaX) >= SWIPE_THRESHOLD) {
           // 왼쪽으로 밀면 다음, 오른쪽으로 밀면 이전
@@ -166,6 +182,9 @@
         }
         restart();
       }, { passive: true });
+
+      // 전화 수신·시스템 제스처 등으로 touchend가 오지 않는 경우에도 재개되도록 한다
+      section.addEventListener('touchcancel', restart, { passive: true });
     })
     .catch(function () {
       // 슬라이드는 부가 요소이므로 실패해도 페이지 나머지에 영향을 주지 않는다

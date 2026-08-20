@@ -1,7 +1,9 @@
 # 보험설계사 페이지
 
 모바일 퍼스트(Mobile-First) 보험 상담·청구 접수 사이트입니다.
-**데이터베이스를 사용하지 않으며**, 신청 내용은 Discord 웹훅으로 담당 설계사에게 즉시 전달됩니다.
+
+**고객이 제출한 개인정보는 DB에 저장하지 않으며**, Discord 웹훅으로 담당 설계사에게 즉시 전달됩니다.
+DB(PostgreSQL)는 설계사가 직접 작성하는 공개 게시글("이야기") 전용입니다 — 이 경계가 이 프로젝트의 핵심 원칙입니다.
 
 ## 기술 스택
 
@@ -12,12 +14,16 @@
 | Template | EJS |
 | CSS | Tailwind CSS (Play CDN) |
 | Validation | zod (`z.infer`로 `req.body` 타입 추론) |
-| 보안 | helmet, express-rate-limit, honeypot |
+| DB / ORM | PostgreSQL + Prisma **(게시판 전용)** |
+| 인증 | express-session + bcrypt (관리자 단일 비밀번호) |
+| 에디터 | Quill (CDN), 이미지 업로드는 multer |
+| 보안 | helmet, express-rate-limit, honeypot, sanitize-html |
 | 로깅 | morgan |
 | 알림 | Discord Webhook (native fetch) |
 
-> DB / ORM / 파일 업로드는 의도적으로 사용하지 않습니다.
-> 영수증·진단서 등 서류는 접수 후 설계사가 직접 연락하여 안내합니다.
+> **고객 접수 데이터(설계신청·청구신청)는 DB에 저장하지 않습니다.** Discord 웹훅이 유일한 전달 경로입니다.
+> 영수증·진단서 등 서류는 접수 후 설계사가 직접 연락하여 안내하며, 웹에서 업로드받지 않습니다.
+> DB에 저장되는 것은 설계사가 관리자 페이지에서 작성하는 공개 게시글뿐입니다.
 
 ## 시작하기
 
@@ -36,7 +42,7 @@ npm run dev            # http://localhost:3000
 | `npm start` | 빌드 결과 실행 |
 | `npm run typecheck` | 타입 검사만 수행 |
 | `npm test` | 접수 전 과정 e2e 검증 (로컬 스텁 웹훅 사용 — 실제 Discord로 전송되지 않음) |
-| `npm run test:story` | 게시판 e2e 검증 (실제 DB 사용, 테스트 데이터는 자동 정리) |
+| `npm run test:story` | 게시판 e2e 검증 (실제 DB 사용, 테스트 데이터는 자동 정리) — 관리자 비밀번호를 바꿨다면 `E2E_ADMIN_PASSWORD='실제비밀번호' npm run test:story` |
 | `npm run deploy` | 빌드 후 PM2로 기동/무중단 리로드 |
 | `npm run pm2:logs` | PM2 로그 확인 |
 
@@ -52,6 +58,7 @@ npx pm2 startup       # 부팅 시 자동 시작 등록 (출력되는 명령을 
 ```
 
 이후 코드가 바뀌면 `npm run deploy` 한 번이면 됩니다 (`startOrReload`라 최초 기동/재배포 모두 처리).
+**단, Prisma 스키마가 바뀐 배포에서는 `npx prisma migrate deploy`를 먼저 실행해야 합니다.**
 
 **서버에 반드시 직접 올려야 하는 것**
 

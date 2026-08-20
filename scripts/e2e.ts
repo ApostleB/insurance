@@ -17,6 +17,19 @@ process.env.DISCORD_WEBHOOK_CONSULTATION = `http://127.0.0.1:${STUB_PORT}/hook`;
 // 청구는 항상 500을 돌려주는 경로에 붙여 실패 UX와 재시도를 확인한다.
 process.env.DISCORD_WEBHOOK_CLAIM = `http://127.0.0.1:${STUB_PORT}/fail`;
 
+// 이 테스트는 접수 흐름만 검증하므로 DB나 관리자 기능을 쓰지 않는다.
+// 다만 env.ts가 기동 시점에 모든 필수 변수를 검증하므로, .env가 없는 환경(CI, 새 클론)에서도
+// 돌아가도록 게시판용 변수에 더미 값을 넣어준다. 실제로 접속하지 않는다.
+process.env.DATABASE_URL ??= 'postgresql://unused:unused@127.0.0.1:1/unused?schema=public';
+process.env.ADMIN_PASSWORD_HASH ??= '$2b$10$0000000000000000000000000000000000000000000000000000';
+process.env.SESSION_SECRET ??= 'e2e-dummy-session-secret-not-used-in-this-test';
+
+// 사이트 메타·연락처도 뷰 렌더링에만 쓰이므로 더미로 채워 .env 의존을 없앤다.
+process.env.CONTACT_PHONE ??= '010-0000-0000';
+process.env.KAKAO_OPEN_PROFILE_URL ??= 'https://open.kakao.com/o/e2e-dummy';
+process.env.SITE_URL ??= 'http://127.0.0.1';
+process.env.SITE_NAME ??= 'e2e 테스트';
+
 interface DiscordEmbedPayload {
   title?: string;
   description?: string;

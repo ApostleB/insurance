@@ -2,7 +2,7 @@
   "name": "insurance-site",
   "version": "1.0.0",
   "private": true,
-  "description": "독립 보험설계사 모바일 퍼스트 홈페이지 (DB 없이 Discord 웹훅으로 접수 전달)",
+  "description": "독립 보험설계사 모바일 퍼스트 홈페이지 (고객 접수는 DB 미저장·Discord 웹훅 전달 / 게시판은 PostgreSQL)",
   "main": "dist/server.js",
   "engines": {
     "node": ">=20"

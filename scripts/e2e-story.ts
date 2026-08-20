@@ -17,8 +17,9 @@ process.env.DISCORD_WEBHOOK_CLAIM = 'http://127.0.0.1:1/hook';
 // DATABASE_URL / ADMIN_PASSWORD_HASH / SESSION_SECRET는 덮어쓰지 않는다 —
 // 이 테스트는 실제 게시판 DB와 실제 관리자 비밀번호로 로그인까지 검증해야 한다.
 
-/** .env의 ADMIN_PASSWORD_HASH는 현재 이 비밀번호의 bcrypt 해시다. 운영 비밀번호를 바꾸면 이 값도 맞춰야 한다. */
-const ADMIN_PASSWORD = 'changeme1234';
+// 운영 비밀번호를 바꾸면 이 스크립트가 깨지므로 환경변수로 덮어쓸 수 있게 한다.
+//   E2E_ADMIN_PASSWORD=실제비밀번호 npm run test:story
+const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'changeme1234';
 
 let failures = 0;
 const check = (label: string, ok: boolean, detail = '') => {

@@ -4,6 +4,7 @@ import type { Request, RequestHandler, Response } from 'express';
 import { env } from '../config/env';
 import { toFieldErrors, type FieldErrors } from '../schemas/common';
 import { postSchema } from '../schemas/post.schema';
+import { parsePostId } from '../schemas/postId';
 import { STORY_UPLOAD_DIR, toUploadError } from '../middlewares/upload';
 import { sanitizePostContent } from '../services/sanitize.service';
 import {
@@ -138,8 +139,8 @@ export const submitCreate: RequestHandler = async (req, res) => {
 // ── 수정 ────────────────────────────────────────────
 
 export const renderEditForm: RequestHandler = async (req, res, next) => {
-  const id = Number(req.params.id);
-  const post = Number.isInteger(id) ? await getPost(id) : null;
+  const id = parsePostId(req.params.id);
+  const post = id === null ? null : await getPost(id);
   if (!post) {
     next();
     return;
@@ -161,8 +162,13 @@ export const renderEditForm: RequestHandler = async (req, res, next) => {
 };
 
 export const submitEdit: RequestHandler = async (req, res, next) => {
-  const id = Number(req.params.id);
-  const existing = Number.isInteger(id) ? await getPost(id) : null;
+  const id = parsePostId(req.params.id);
+  if (id === null) {
+    next();
+    return;
+  }
+
+  const existing = await getPost(id);
   if (!existing) {
     next();
     return;
@@ -209,8 +215,13 @@ export const submitEdit: RequestHandler = async (req, res, next) => {
 // ── 삭제 / 순서 ─────────────────────────────────────
 
 export const submitDelete: RequestHandler = async (req, res, next) => {
-  const id = Number(req.params.id);
-  const post = Number.isInteger(id) ? await getPost(id) : null;
+  const id = parsePostId(req.params.id);
+  if (id === null) {
+    next();
+    return;
+  }
+
+  const post = await getPost(id);
   if (!post) {
     next();
     return;
@@ -222,20 +233,29 @@ export const submitDelete: RequestHandler = async (req, res, next) => {
   res.redirect('/admin/story');
 };
 
-export const submitMove: RequestHandler = async (req, res) => {
-  const id = Number(req.params.id);
-  const direction = req.params.direction === 'up' ? 'up' : 'down';
-  if (Number.isInteger(id)) await movePost(id, direction);
+export const submitMove: RequestHandler = async (req, res, next) => {
+  const id = parsePostId(req.params.id);
+  const direction = req.params.direction;
+  // 형제 핸들러들과 동일하게, 잘못된 파라미터는 조용히 폴백하지 않고 404로 넘긴다
+  if (id === null || (direction !== 'up' && direction !== 'down')) {
+    next();
+    return;
+  }
+  await movePost(id, direction);
   res.redirect('/admin/story');
 };
 
 /** 목록에서 게시/고정/홈노출을 즉시 토글한다. */
 export const submitToggle: RequestHandler = async (req, res, next) => {
-  const id = Number(req.params.id);
+  const id = parsePostId(req.params.id);
   const field = req.params.field;
-  const post = Number.isInteger(id) ? await getPost(id) : null;
+  if (id === null || !['isPinned', 'showOnHome', 'isPublished'].includes(field ?? '')) {
+    next();
+    return;
+  }
 
-  if (!post || !['isPinned', 'showOnHome', 'isPublished'].includes(field ?? '')) {
+  const post = await getPost(id);
+  if (!post) {
     next();
     return;
   }

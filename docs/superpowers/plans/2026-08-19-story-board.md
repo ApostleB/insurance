@@ -1193,6 +1193,7 @@ import { env } from '../config/env';
 import { toFieldErrors, type FieldErrors } from '../schemas/common';
 import { postSchema } from '../schemas/post.schema';
 import { STORY_UPLOAD_DIR, toUploadError } from '../middlewares/upload';
+import { sanitizePostContent } from '../services/sanitize.service';
 import {
   createPost,
   deletePost,
@@ -1222,9 +1223,17 @@ const EMPTY_VALUES: FormValues = {
   mainImage: '',
 };
 
+/**
+ * 검증 실패 시 폼을 다시 그리기 위해 입력값을 추출한다.
+ *
+ * `content`는 반드시 sanitize한다. 이 값은 `form.ejs`에서 Quill 초기 내용으로
+ * `<%- %>`(이스케이프 없이) 출력되는데, 저장 경로(post.service)의 sanitize는
+ * 검증을 통과한 경우에만 실행되기 때문이다. 여기서 걸러내지 않으면
+ * "제목 미입력 + 본문에 스크립트" 같은 조합으로 관리자 화면에 임의 HTML이 실행된다.
+ */
 const pickValues = (body: Request['body'], mainImage = ''): FormValues => ({
   title: typeof body?.title === 'string' ? body.title : '',
-  content: typeof body?.content === 'string' ? body.content : '',
+  content: typeof body?.content === 'string' ? sanitizePostContent(body.content) : '',
   sourceUrl: typeof body?.sourceUrl === 'string' ? body.sourceUrl : '',
   isPinned: body?.isPinned === 'on',
   showOnHome: body?.showOnHome === 'on',

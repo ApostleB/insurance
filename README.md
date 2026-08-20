@@ -113,48 +113,86 @@ nginx 설정 예시는 [deploy/nginx/insurance.conf](deploy/nginx/insurance.conf
 ## 디렉토리 구조
 
 ```
+prisma/schema.prisma          # Post 모델 (게시판 전용 — 고객 접수 정보는 DB에 저장하지 않는다)
 src/
-├── app.ts                    # Express 앱 조립 (helmet/CSP, 정적파일, locals)
+├── app.ts                    # Express 앱 조립 (helmet/CSP, 세션, 정적파일, locals)
 ├── server.ts                 # 서버 기동 + graceful shutdown
 ├── config/env.ts             # 환경변수 zod 검증
+├── lib/prisma.ts             # PrismaClient 싱글턴
 ├── schemas/
 │   ├── common.ts             # 휴대폰 정규식, 동의 체크박스, 에러 맵 변환
-│   └── inquiry.schema.ts     # 설계/청구 폼 스키마 (이름·연락처·상세내용)
+│   ├── inquiry.schema.ts     # 설계/청구 폼 스키마 (이름·연락처·상세내용)
+│   ├── post.schema.ts        # 게시글 스키마 (본문은 선택, sourceUrl은 http(s)만)
+│   └── postId.ts             # :id 파라미터 검증 (Int4 상한 초과 → 404)
 ├── services/
 │   ├── discord.service.ts    # 웹훅 전송 모듈 (Embed)
 │   ├── inquiry.service.ts    # 접수 내용 → Discord Embed 변환·전달
-│   └── alert.service.ts      # 운영 알림 (500 에러·서버 기동) → GENERAL 웹훅
+│   ├── alert.service.ts      # 운영 알림 (500 에러) → GENERAL 웹훅
+│   ├── post.service.ts       # 게시글 CRUD + 노출 순서(movePost)
+│   └── sanitize.service.ts   # 본문 HTML sanitize (저장형 XSS 방어)
 ├── controllers/
 │   ├── page.controller.ts    # 메인/개인정보처리방침/헬스체크
 │   ├── inquiry.controller.ts # 설계·청구 폼 렌더 및 제출 처리
-│   └── seo.controller.ts     # sitemap.xml / robots.txt
+│   ├── seo.controller.ts     # sitemap.xml / robots.txt
+│   ├── story.controller.ts   # 이야기 목록·상세 + 홈 슬라이드 JSON
+│   ├── admin.controller.ts   # 관리자 로그인/로그아웃
+│   └── adminStory.controller.ts # 게시글 작성·수정·삭제·순서·토글
 ├── middlewares/
-│   ├── rateLimiter.ts        # POST 폼 제출 제한 (15분 5회)
+│   ├── rateLimiter.ts        # POST 폼 제출(15분 5회) / 관리자 로그인 제한
+│   ├── adminAuth.ts          # 세션 기반 관리자 인증 가드
+│   ├── upload.ts             # multer 이미지 업로드 (MIME·확장자 이중 검증)
 │   └── errorHandler.ts       # 404 / 500 / asyncHandler
-├── routes/index.ts
-└── views/                    # EJS (partials + 페이지)
-public/                       # 정적 리소스 (favicon, js)
+├── routes/
+│   ├── index.ts
+│   └── admin.routes.ts       # /admin 이하 (로그인 외 전부 requireAdmin)
+└── views/                    # EJS (partials + 페이지 + story/ + admin/)
+public/
+├── js/app.js                 # 공통 스크립트
+├── js/story-slider.js        # 홈 이야기 캐러셀 (가로 슬라이드·무한 루프·스와이프)
+├── js/admin-editor.js        # Quill 에디터 + 이미지 업로드 핸들러
+└── uploads/story/            # 업로드된 게시글 이미지 (git 추적 제외)
+scripts/
+├── e2e.ts                    # 폼 접수 e2e (`npm test`)
+└── e2e-story.ts              # 게시판 e2e (`npm run test:story`, 게시판이 비어 있을 때만)
 ```
 
 ## 라우트
 
+### 공개
+
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
-| GET | `/` | 본인소개 (프로필·강점·취급 보험사) |
+| GET | `/` | 본인소개 (프로필 + 이야기 슬라이드 + 즉시 연결) |
 | GET | `/consultation` | 설계신청 폼 |
 | POST | `/consultation` | 검증 → Discord 전송 → 완료 페이지 |
 | GET | `/consultation/complete` | 설계신청 완료 |
 | GET | `/claim` | 청구신청 폼 (파일 첨부 없음) |
 | POST | `/claim` | 검증 → Discord 전송 → 완료 페이지 |
 | GET | `/claim/complete` | 청구신청 완료 |
-| GET | `/privacy` | 개인정보처리방침 |
-| GET | `/sitemap.xml`, `/robots.txt` | SEO |
-| GET | `/health` | 헬스체크 |
 | GET | `/story` | 이야기 목록 |
 | GET | `/story/:id` | 이야기 상세 |
 | GET | `/api/story/slides` | 홈 슬라이드용 JSON |
-| GET/POST | `/admin/login` | 관리자 로그인 |
-| GET | `/admin/story` | 게시글 관리 |
+| GET | `/privacy` | 개인정보처리방침 |
+| GET | `/sitemap.xml`, `/robots.txt` | SEO |
+| GET | `/health` | 헬스체크 |
+
+### 관리자
+
+`/admin/login` 외에는 모두 `requireAdmin` 세션 인증을 거친다.
+
+| 메서드 | 경로 | 설명 |
+| --- | --- | --- |
+| GET/POST | `/admin/login` | 관리자 로그인 (bcrypt 단일 비밀번호, 로그인 시도 제한) |
+| POST | `/admin/logout` | 로그아웃 |
+| GET | `/admin/story` | 게시글 관리 목록 (비공개 글 포함) |
+| GET | `/admin/story/new` | 글 작성 폼 |
+| POST | `/admin/story` | 글 작성 (대표 이미지 업로드 포함) |
+| GET | `/admin/story/:id/edit` | 글 수정 폼 |
+| POST | `/admin/story/:id` | 글 수정 |
+| POST | `/admin/story/:id/delete` | 글 삭제 (대표 이미지도 함께 삭제) |
+| POST | `/admin/story/:id/move/:direction` | 노출 순서 변경 (`up`/`down`, 고정 그룹 내에서만) |
+| POST | `/admin/story/:id/toggle/:field` | 게시/고정/홈노출 토글 |
+| POST | `/admin/upload/image` | 에디터 본문 이미지 업로드 (JSON 응답) |
 
 ## Discord 알림 3종
 

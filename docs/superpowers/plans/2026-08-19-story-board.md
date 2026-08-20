@@ -354,10 +354,14 @@ export const postSchema = z.object({
     .min(2, '제목은 2자 이상 입력해주세요.')
     .max(200, '제목은 200자 이하로 입력해주세요.'),
 
+  // 본문은 선택 입력이다. 자격증 사진처럼 대표 이미지 한 장만으로 충분한 글이 있다.
+  // 미입력 시 빈 문자열로 저장한다(컬럼이 NOT NULL이므로 null을 넣지 않는다).
   content: z
-    .string({ required_error: '내용을 입력해주세요.' })
+    .string()
     .trim()
-    .min(1, '내용을 입력해주세요.'),
+    .max(50_000, '내용이 너무 깁니다.')
+    .optional()
+    .transform((value) => value ?? ''),
 
   // zod의 .url()은 `javascript:`, `data:`, `vbscript:` 스킴도 유효한 URL로 통과시킨다.
   // 이 값은 상세 페이지의 "원문 보기" 링크 href에 그대로 들어가므로,
@@ -1678,7 +1682,7 @@ export const uploadImageApi: RequestHandler = (req, res) => {
 
   var quill = new Quill(editorEl, {
     theme: 'snow',
-    placeholder: '내용을 입력해주세요.',
+    placeholder: '내용을 입력해주세요. (선택 — 비워두면 대표 이미지만 표시됩니다)',
     modules: {
       toolbar: {
         container: [

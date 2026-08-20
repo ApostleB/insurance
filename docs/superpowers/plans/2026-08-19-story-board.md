@@ -1849,6 +1849,8 @@ git commit -m "feat: 관리자 게시글 관리 페이지 (CRUD, Quill 에디터
   var index = 0;
   var timer = null;
   var resumeTimer = null;
+  /** 마우스를 올려두었거나 손가락을 대고 있는 동안 true — 이때는 자동 전환을 재개하지 않는다 */
+  var isInteracting = false;
 
   function render() {
     track.innerHTML = slides
@@ -1905,13 +1907,26 @@ git commit -m "feat: 관리자 게시글 관리 페이지 (CRUD, Quill 에디터
     timer = setInterval(function () { show(index + 1); }, AUTO_MS);
   }
 
+  /**
+   * 자동 전환을 멈춘다.
+   *
+   * 예약된 재개 타이머(resumeTimer)도 함께 취소한다.
+   * 이걸 남겨두면 정지 상태인데도 예약된 start가 뒤늦게 발동해 되살아난다.
+   */
   function stop() {
     if (timer) { clearInterval(timer); timer = null; }
+    if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
   }
 
+  /**
+   * 조작 직후 잠시 멈췄다가 다시 자동 전환을 시작한다.
+   *
+   * 단, 사용자가 아직 슬라이더를 만지고 있으면(마우스를 올려둔 채이거나
+   * 손가락을 대고 있으면) 재개를 예약하지 않는다.
+   */
   function restart() {
     stop();
-    if (resumeTimer) clearTimeout(resumeTimer);
+    if (isInteracting) return; // 포인터를 떼는 시점(mouseleave/touchend)에 재개된다
     resumeTimer = setTimeout(start, RESUME_DELAY_MS);
   }
 
@@ -1927,17 +1942,25 @@ git commit -m "feat: 관리자 게시글 관리 페이지 (CRUD, Quill 에디터
       start();
 
       // 데스크톱: 마우스를 올리면 멈추고 떼면 다시 돈다
-      section.addEventListener('mouseenter', stop);
-      section.addEventListener('mouseleave', start);
+      section.addEventListener('mouseenter', function () {
+        isInteracting = true;
+        stop();
+      });
+      section.addEventListener('mouseleave', function () {
+        isInteracting = false;
+        start();
+      });
 
       // 모바일: 터치 중에는 멈추고, 뗀 뒤 잠시 후 재개한다
       var touchStartX = 0;
       section.addEventListener('touchstart', function (e) {
+        isInteracting = true;
         stop();
         touchStartX = e.changedTouches[0].screenX;
       }, { passive: true });
 
       section.addEventListener('touchend', function (e) {
+        isInteracting = false;
         var deltaX = e.changedTouches[0].screenX - touchStartX;
         if (Math.abs(deltaX) >= SWIPE_THRESHOLD) {
           // 왼쪽으로 밀면 다음, 오른쪽으로 밀면 이전

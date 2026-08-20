@@ -165,7 +165,12 @@
       // 다시 확인하므로 호버 중에는 어차피 재개되지 않고, 터치 기기에서
       // 합성 mouseenter가 예약을 지워 영영 멈추는 일도 없다.
       section.addEventListener('mouseenter', stop);
-      section.addEventListener('mouseleave', start);
+      section.addEventListener('mouseleave', function () {
+        // 호버 중 도트를 눌렀다면 재개 예약이 남아 있다. 지우지 않으면
+        // 여기서 시작한 순환을 그 예약이 뒤늦게 리셋해 전환이 한 박자 밀린다.
+        stopAndCancelResume();
+        start();
+      });
 
       // 모바일: 터치 중에는 멈추고, 뗀 뒤 잠시 후 재개한다
       var touchStartX = 0;

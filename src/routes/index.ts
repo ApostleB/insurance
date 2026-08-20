@@ -12,6 +12,7 @@ import { robots, sitemap } from '../controllers/seo.controller';
 import { renderStoryDetail, renderStoryList, slidesApi } from '../controllers/story.controller';
 import { asyncHandler } from '../middlewares/errorHandler';
 import { formSubmitLimiter } from '../middlewares/rateLimiter';
+import { adminRouter } from './admin.routes';
 
 export const router = Router();
 
@@ -39,6 +40,9 @@ router.get('/privacy', renderPrivacy);
 // SEO
 router.get('/sitemap.xml', sitemap);
 router.get('/robots.txt', robots);
+
+// 관리자
+router.use('/admin', adminRouter);
 
 // 운영
 router.get('/health', healthCheck);
